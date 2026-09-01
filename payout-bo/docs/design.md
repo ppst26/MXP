@@ -926,6 +926,8 @@ settled_at     ปิดชุด SETTLED หรือเข้า NEEDS_REVIEW
 
 ## E4. API หลังบ้าน
 
+> **คู่มือเชื่อมงาน:** แผนที่ field → component และ query ต่อหน้า ดู [backend-integration.md](backend-integration.md)
+
 ซองคำตอบ `{ "success": true, "code": 200, "data": {} }`
 เงินเป็นสตริง · `amount`/`reserved_fee` สเกล 4 · ค่าโอนธนาคารสเกล 2
 รายการมี `pagination: { page, limit, total, pages }`

@@ -7,6 +7,7 @@
 | ไฟล์ | เนื้อหา |
 |---|---|
 | [docs/design.md](docs/design.md) | สเปกที่ยึดถือ |
+| [docs/backend-integration.md](docs/backend-integration.md) | เชื่อม API — field, endpoint, แผนที่ component |
 
 สรุปเฟส: [`docs/spec-summaries/06-p7a-payout-bo-dashboard.md`](../docs/spec-summaries/06-p7a-payout-bo-dashboard.md)
 
