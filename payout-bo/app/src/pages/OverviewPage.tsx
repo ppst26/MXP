@@ -11,6 +11,7 @@ import {
   queueHeldOf,
   queuePayouts,
   timeseries,
+  successRateTimeseries,
 } from "../mock/query";
 import type { PayoutStatus } from "../mock/types";
 import { prevRange } from "../lib/bangkok";
@@ -60,6 +61,7 @@ export function OverviewPage() {
   const bPeriod = db.batches.filter((b) => b.createdAt >= filters.from && b.createdAt < filters.to);
   const watch = isAdmin ? merchantWatch(rows, q, merchantId) : null;
   const ts = timeseries(db, filters.from, filters.to, f);
+  const rateTs = successRateTimeseries(db, filters.from, filters.to, f);
   const source = isAdmin ? effectiveSource(db.source, demo, db.now) : null;
   const queueAmount = pending.concat(processing).reduce((s, p) => s + p.amount, 0);
   const alerts = isAdmin
@@ -158,7 +160,7 @@ export function OverviewPage() {
             showHouseCost={isAdmin}
             showBatches={isAdmin}
           />
-          <ComparePairs rows={rows} queue={q} ts={ts} source={source} showHouse={isAdmin} />
+          <ComparePairs rows={rows} queue={q} ts={ts} rateTs={rateTs} m={m} pm={pm} showHouse={isAdmin} />
           {isAdmin ? <MerchantWatch rows={watch} onPick={(id) => setFilters({ merchantId: id })} /> : null}
       </Zone>
     </>

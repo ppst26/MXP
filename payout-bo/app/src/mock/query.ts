@@ -176,26 +176,10 @@ export function merchantWatch(periodRows: Payout[], queueRows: Payout[], merchan
 }
 
 export function timeseries(db: MockDb, from: Date, to: Date, f: PayoutFilter) {
-  const hours = to.getTime() - from.getTime() <= 48 * 3600 * 1000;
-  const buckets: { t: Date; label: string }[] = [];
-  if (hours) {
-    let t = new Date(from);
-    t.setMinutes(0, 0, 0);
-    while (t < to) {
-      buckets.push({ t: new Date(t), label: pad(t.getHours()) + "น." });
-      t = addMs(t, 3600000);
-    }
-  } else {
-    let t = startOfDay(from);
-    while (t < to) {
-      buckets.push({ t: new Date(t), label: fmtD(t).slice(8) });
-      t = addMs(t, 86400000);
-    }
-  }
+  const { buckets, step } = timeBuckets(from, to);
   const pr = prevRange(from, to);
   const curRows = payoutsInPeriod(db, { ...f, from, to });
   const prevRows = payoutsInPeriod(db, { ...f, from: pr.from, to: pr.to });
-  const step = hours ? 3600000 : 86400000;
   const amt = (rows: Payout[], start: Date, end: Date) =>
     rows
       .filter((p) => p.status === "COMPLETED" && p.createdAt >= start && p.createdAt < end)
@@ -205,6 +189,50 @@ export function timeseries(db: MockDb, from: Date, to: Date, f: PayoutFilter) {
     const prevStart = addMs(pr.from, i * step);
     return { label: b.label, current: amt(curRows, b.t, end), previous: amt(prevRows, prevStart, addMs(prevStart, step)) };
   });
+}
+
+export function successRateTimeseries(db: MockDb, from: Date, to: Date, f: PayoutFilter) {
+  const { buckets, step } = timeBuckets(from, to);
+  const pr = prevRange(from, to);
+  const curRows = payoutsInPeriod(db, { ...f, from, to });
+  const prevRows = payoutsInPeriod(db, { ...f, from: pr.from, to: pr.to });
+  const ratePct = (rows: Payout[], start: Date, end: Date) => {
+    const slice = rows.filter((p) => p.createdAt >= start && p.createdAt < end);
+    const completed = slice.filter((p) => p.status === "COMPLETED").length;
+    const failed = slice.filter((p) => p.status === "FAILED").length;
+    const den = completed + failed;
+    return den ? (completed / den) * 100 : null;
+  };
+  return buckets.map((b, i) => {
+    const end = addMs(b.t, step);
+    const prevStart = addMs(pr.from, i * step);
+    return {
+      label: b.label,
+      current: ratePct(curRows, b.t, end),
+      previous: ratePct(prevRows, prevStart, addMs(prevStart, step)),
+    };
+  });
+}
+
+function timeBuckets(from: Date, to: Date) {
+  const hours = to.getTime() - from.getTime() <= 48 * 3600 * 1000;
+  const buckets: { t: Date; label: string }[] = [];
+  const step = hours ? 3600000 : 86400000;
+  if (hours) {
+    let t = new Date(from);
+    t.setMinutes(0, 0, 0);
+    while (t < to) {
+      buckets.push({ t: new Date(t), label: `${pad(t.getHours())}:00` });
+      t = addMs(t, step);
+    }
+  } else {
+    let t = startOfDay(from);
+    while (t < to) {
+      buckets.push({ t: new Date(t), label: fmtD(t).slice(8) });
+      t = addMs(t, step);
+    }
+  }
+  return { buckets, step, hours };
 }
 
 export function queueAge(rows: Payout[], now = NOW) {
