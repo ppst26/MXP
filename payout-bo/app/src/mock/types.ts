@@ -18,6 +18,38 @@ export type Route = "SAME_BANK" | "INTERBANK";
 
 export type MerchantRole = "RESELLER" | "DIRECT";
 
+export type BoUserKind = "merchant" | "platform";
+export type BoUserRole = "user" | "shop_admin" | "platform_admin";
+export type BoUserStatus = "active" | "disabled";
+export type LoginStage = "password" | "2fa";
+export type LoginResult = "success" | "failed";
+
+export type BoUser = {
+  id: string;
+  username: string;
+  displayName: string;
+  merchantId: string | null;
+  kind: BoUserKind;
+  role: BoUserRole;
+  status: BoUserStatus;
+  twoFactor: boolean;
+  mustChangePassword: boolean;
+  lastLoginAt: Date | null;
+  createdAt: Date;
+};
+
+export type LoginEvent = {
+  id: string;
+  at: Date;
+  userId: string;
+  merchantId: string | null;
+  stage: LoginStage;
+  result: LoginResult;
+  reason: string | null;
+  ip: string;
+  device: string;
+};
+
 export type Merchant = {
   id: string;
   code: string;
@@ -120,6 +152,12 @@ export type SourceAccount = {
   bankBalanceAt: Date;
 };
 
+export type MerchantSettlementAccount = {
+  bankName: string;
+  accountNo: string;
+  accountName: string;
+};
+
 export type MerchantBooks = {
   merchantId: string;
   operate: number;
@@ -128,6 +166,7 @@ export type MerchantBooks = {
   pendingPayout: number;
   freezeBalance: number;
   balance: number;
+  settlementAccount?: MerchantSettlementAccount | null;
 };
 
 export type MockDb = {
@@ -194,4 +233,39 @@ export type MerchantPeriodFee = {
   incurred: number;
   incurredCount: number;
   interbankCount: number;
+};
+
+export type InboxTone = "alert" | "warn" | "default";
+
+export type InboxListPatch = {
+  statuses?: PayoutStatus[];
+  batchStatus?: string;
+  batchStuck?: boolean;
+};
+
+export type InboxTarget = {
+  path: string;
+  list?: InboxListPatch;
+};
+
+export type InboxItem = {
+  id: string;
+  section: "live" | "recent";
+  tone: InboxTone;
+  title: string;
+  detail: string;
+  to: InboxTarget;
+};
+
+export type Inbox = {
+  live: InboxItem[];
+  recent: InboxItem[];
+  badgeCount: number;
+};
+
+export type TopUpEvent = {
+  id: string;
+  at: Date;
+  merchantId: string;
+  amount: number;
 };

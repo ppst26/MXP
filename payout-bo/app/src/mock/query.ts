@@ -1,6 +1,13 @@
 import type {
   Batch,
   BatchPeriodSummary,
+  BoUser,
+  Inbox,
+  InboxItem,
+  InboxTone,
+  LoginEvent,
+  LoginResult,
+  LoginStage,
   Merchant,
   MerchantBooks,
   MerchantWatchRow,
@@ -11,10 +18,12 @@ import type {
   PayoutStatus,
   Route,
   SourceAccount,
+  TopUpEvent,
 } from "./types";
-import { MERCHANTS } from "./seed";
+import { MERCHANTS, SETTLEMENT_ACCOUNT_SEED } from "./seed";
 import { NOW, addMs, fmtD, pad, prevRange, startOfDay } from "../lib/bangkok";
 import { STUCK_BATCH_LABEL } from "../lib/copy";
+import { money } from "../lib/money";
 
 export type PayoutFilter = {
   from: Date;
@@ -374,6 +383,7 @@ export function booksOf(db: MockDb, merchantId: string): MerchantBooks | null {
   if (!seed) return null;
   const pendingPayout = pendingPayoutOf(db.payouts, merchantId);
   const freezeBalance = seed.freeze + pendingPayout;
+  const settlementAccount = SETTLEMENT_ACCOUNT_SEED[merchantId] ?? null;
   return {
     merchantId,
     operate: seed.operate,
@@ -382,6 +392,7 @@ export function booksOf(db: MockDb, merchantId: string): MerchantBooks | null {
     pendingPayout,
     freezeBalance,
     balance: seed.operate + seed.parking + freezeBalance,
+    settlementAccount,
   };
 }
 
@@ -447,3 +458,389 @@ export function houseAlerts(args: {
 }
 
 export const MOCK_DIRECT_USER = "m-acme";
+
+export type BoUserTab = "merchant" | "admin";
+
+export type BoUserFilter = {
+  tab: BoUserTab;
+  merchantId: string;
+  q: string;
+  isAdmin: boolean;
+};
+
+export type ShopUserSummary = {
+  merchantId: string;
+  name: string;
+  code: string;
+  accountCount: number;
+  adminCount: number;
+  lastLoginAt: Date | null;
+};
+
+export function listShopMembers(users: BoUser[], merchantId: string, q: string): BoUser[] {
+  const needle = q.trim().toLowerCase();
+  return users
+    .filter((u) => u.kind === "merchant" && u.merchantId === merchantId)
+    .filter((u) => {
+      if (!needle) return true;
+      return `${u.username} ${u.displayName}`.toLowerCase().includes(needle);
+    })
+    .sort((a, b) => {
+      const ta = a.lastLoginAt?.getTime() ?? 0;
+      const tb = b.lastLoginAt?.getTime() ?? 0;
+      return tb - ta;
+    });
+}
+
+export function listShopUserSummaries(
+  users: BoUser[],
+  args: { merchantId: string; q: string; nameOf?: (merchantId: string) => string },
+): ShopUserSummary[] {
+  const members = listBoUsers(users, {
+    tab: "merchant",
+    merchantId: args.merchantId,
+    q: "",
+    isAdmin: true,
+  });
+  const grouped = new Map<string, BoUser[]>();
+  for (const u of members) {
+    if (!u.merchantId) continue;
+    const list = grouped.get(u.merchantId);
+    if (list) list.push(u);
+    else grouped.set(u.merchantId, [u]);
+  }
+  const needle = args.q.trim().toLowerCase();
+  const nameOf = args.nameOf ?? ((id: string) => merchById(id)?.name ?? id);
+  return [...grouped.entries()]
+    .map(([merchantId, list]) => {
+      const shop = merchById(merchantId);
+      const lastLoginAt = list.reduce<Date | null>((latest, u) => {
+        if (!u.lastLoginAt) return latest;
+        if (!latest || u.lastLoginAt.getTime() > latest.getTime()) return u.lastLoginAt;
+        return latest;
+      }, null);
+      return {
+        merchantId,
+        name: nameOf(merchantId),
+        code: shop?.code ?? "",
+        accountCount: list.length,
+        adminCount: list.filter((u) => u.role === "shop_admin").length,
+        lastLoginAt,
+      };
+    })
+    .filter((row) => {
+      if (!needle) return true;
+      return `${row.name} ${row.code}`.toLowerCase().includes(needle);
+    })
+    .sort((a, b) => {
+      const ta = a.lastLoginAt?.getTime() ?? 0;
+      const tb = b.lastLoginAt?.getTime() ?? 0;
+      return tb - ta;
+    });
+}
+
+export function listBoUsers(users: BoUser[], args: BoUserFilter): BoUser[] {
+  const q = args.q.trim().toLowerCase();
+  const ids = subtreeIds(args.merchantId);
+  return users
+    .filter((u) => {
+      if (args.tab === "admin") {
+        if (args.isAdmin) return u.kind === "platform";
+        return u.kind === "merchant" && u.role === "shop_admin";
+      }
+      if (u.kind !== "merchant") return false;
+      if (!args.isAdmin && u.role !== "user") return false;
+      return true;
+    })
+    .filter((u) => {
+      if (!args.isAdmin) return u.merchantId === MOCK_DIRECT_USER;
+      if (args.tab === "admin") return true;
+      if (!ids) return true;
+      return u.merchantId != null && ids.includes(u.merchantId);
+    })
+    .filter((u) => {
+      if (!q) return true;
+      const shop = u.merchantId ? merchById(u.merchantId) : undefined;
+      const hay = `${u.username} ${u.displayName} ${shop?.name ?? ""} ${shop?.code ?? ""} แพลตฟอร์ม`.toLowerCase();
+      return hay.includes(q);
+    })
+    .sort((a, b) => {
+      const ta = a.lastLoginAt?.getTime() ?? 0;
+      const tb = b.lastLoginAt?.getTime() ?? 0;
+      return tb - ta;
+    });
+}
+
+export type LoginEventFilter = {
+  from: Date;
+  to: Date;
+  merchantId: string;
+  userId: string;
+  result: "" | LoginResult;
+  stage: "" | LoginStage;
+  isAdmin: boolean;
+};
+
+export function listLoginEvents(events: LoginEvent[], args: LoginEventFilter): LoginEvent[] {
+  const ids = subtreeIds(args.merchantId);
+  return events
+    .filter((e) => e.at.getTime() >= args.from.getTime() && e.at.getTime() <= args.to.getTime())
+    .filter((e) => {
+      if (args.userId) return e.userId === args.userId;
+      return true;
+    })
+    .filter((e) => (args.result ? e.result === args.result : true))
+    .filter((e) => (args.stage ? e.stage === args.stage : true))
+    .filter((e) => {
+      if (!args.isAdmin) {
+        return e.merchantId === MOCK_DIRECT_USER;
+      }
+      if (!ids) return true;
+      return e.merchantId != null && ids.includes(e.merchantId);
+    })
+    .sort((a, b) => b.at.getTime() - a.at.getTime());
+}
+
+export function passwordFailShops(events: LoginEvent[], min = 3): { merchantId: string; count: number }[] {
+  const counts = new Map<string, number>();
+  for (const e of events) {
+    if (e.result !== "failed" || e.stage !== "password" || !e.merchantId) continue;
+    counts.set(e.merchantId, (counts.get(e.merchantId) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .filter(([, count]) => count >= min)
+    .map(([merchantId, count]) => ({ merchantId, count }))
+    .sort((a, b) => b.count - a.count);
+}
+
+const OPERATE_LOW = 50_000;
+
+export type ListInboxArgs = {
+  isAdmin: boolean;
+  merchantId: string;
+  demo: HouseDemo;
+};
+
+function batchAt(b: Batch): Date {
+  return b.settledAt ?? b.confirmedAt ?? b.sentAt ?? b.createdAt;
+}
+
+function payoutAt(p: Payout): Date {
+  return p.updatedAt ?? p.confirmedAt ?? p.createdAt;
+}
+
+function poolLowItem(db: MockDb, demo: HouseDemo): InboxItem | null {
+  const source = effectiveSource(db.source, demo, db.now);
+  const to = { path: "/payouts/overview" as const };
+  if (!source) {
+    return {
+      id: "pool-low",
+      section: "live",
+      tone: "alert",
+      title: "ยังไม่ตั้งบัญชีต้นทาง — ห้ามเดาบัญชี",
+      detail: "ห้ามเดาบัญชีต้นทาง",
+      to,
+    };
+  }
+  const q = queuePayouts(db, "");
+  const pending = q.filter((p) => p.status === "PENDING");
+  const processing = q.filter((p) => p.status === "PROCESSING");
+  const queueAmount = pending.concat(processing).reduce((s, p) => s + p.amount, 0);
+  const stuckBatchCount = db.batches.filter((b) => b.stuck).length;
+  const alerts = houseAlerts({
+    source,
+    pendingCount: pending.length,
+    queueAmount,
+    stuckBatchCount,
+    now: db.now,
+  });
+  const short = alerts.find((a) => a.id === "short");
+  const cap = source.dailyAmountCap;
+  const dailyLow = cap > 0 && (cap - source.dailyAmountUsed) / cap < 0.2;
+  const twiceMin = source.bankBalance < source.minBalance * 2;
+  if (!short && !twiceMin && !dailyLow) return null;
+  const title = short
+    ? short.text
+    : twiceMin
+      ? "ยอดบัญชีต้นทางใกล้เงินสำรอง"
+      : "เพดานโอนวันนี้เหลือต่ำกว่า 20%";
+  const detail = `เหลือ ฿ ${money(source.bankBalance)}`;
+  return { id: "pool-low", section: "live", tone: "alert", title, detail, to };
+}
+
+function adminLive(db: MockDb, demo: HouseDemo): InboxItem[] {
+  const pending = db.batches.filter((b) => b.status === "PENDING");
+  const sending = db.batches.filter((b) => b.status === "SENDING");
+  const sent = db.batches.filter((b) => b.status === "SENT");
+  const waiting = sending.concat(sent);
+  const stuck = db.batches.filter((b) => b.stuck);
+  const needsReview = db.batches.filter((b) => b.status === "NEEDS_REVIEW");
+  const reviewRows = db.batches.filter((b) => b.status === "NEEDS_REVIEW" || b.stuck);
+  const live: InboxItem[] = [];
+
+  if (reviewRows.length) {
+    const title = stuck.length ? STUCK_BATCH_LABEL : "ชุดรอตรวจสอบ";
+    const detail = stuck.length && needsReview.length
+      ? `ค้าง ${stuck.length} · รอตรวจสอบ ${needsReview.length}`
+      : `${reviewRows.length} ชุด`;
+    live.push({
+      id: "review",
+      section: "live",
+      tone: "alert",
+      title,
+      detail,
+      to: {
+        path: "/payouts/batches",
+        list: stuck.length ? { batchStuck: true } : { batchStatus: "NEEDS_REVIEW" },
+      },
+    });
+  }
+
+  const pool = poolLowItem(db, demo);
+  if (pool) live.push(pool);
+
+  if (waiting.length) {
+    const list = stuck.length
+      ? { batchStuck: true }
+      : sending.length
+        ? { batchStatus: "SENDING" }
+        : { batchStatus: "SENT" };
+    live.push({
+      id: "waiting",
+      section: "live",
+      tone: stuck.length ? "warn" : "default",
+      title: "ชุดรอธนาคาร",
+      detail: `${waiting.length} ชุด`,
+      to: { path: "/payouts/batches", list },
+    });
+  }
+
+  if (pending.length) {
+    live.push({
+      id: "queue",
+      section: "live",
+      tone: "default",
+      title: "ชุดรอส่ง",
+      detail: `${pending.length} ชุด`,
+      to: {
+        path: "/payouts/batches",
+        list: { batchStatus: "PENDING", batchStuck: false },
+      },
+    });
+  }
+  return live;
+}
+
+function merchantLive(db: MockDb, merchantId: string): InboxItem[] {
+  const q = queuePayouts(db, merchantId);
+  const pending = q.filter((p) => p.status === "PENDING");
+  const processing = q.filter((p) => p.status === "PROCESSING");
+  const review = q.filter((p) => p.status === "NEEDS_REVIEW");
+  const books = booksOf(db, merchantId);
+  const live: InboxItem[] = [];
+
+  if (review.length) {
+    live.push({
+      id: "review",
+      section: "live",
+      tone: "alert",
+      title: "รายการต้องตรวจสอบ",
+      detail: `${review.length} ใบ`,
+      to: { path: "/payouts", list: { statuses: ["NEEDS_REVIEW"] } },
+    });
+  }
+
+  if (books && books.operate < OPERATE_LOW) {
+    live.push({
+      id: "operate-low",
+      section: "live",
+      tone: "alert",
+      title: "ยอดใช้ได้ใกล้หมด",
+      detail: `฿ ${money(books.operate)}`,
+      to: { path: "/payouts/overview" },
+    });
+  }
+
+  if (processing.length) {
+    live.push({
+      id: "waiting",
+      section: "live",
+      tone: "default",
+      title: "กำลังส่ง รอยืนยันจากธนาคาร",
+      detail: `${processing.length} ใบ`,
+      to: { path: "/payouts", list: { statuses: ["PROCESSING"] } },
+    });
+  }
+
+  if (pending.length) {
+    live.push({
+      id: "queue",
+      section: "live",
+      tone: "default",
+      title: "รอส่งเข้าธนาคาร",
+      detail: `${pending.length} ใบ`,
+      to: { path: "/payouts", list: { statuses: ["PENDING"] } },
+    });
+  }
+  return live;
+}
+
+function adminRecent(db: MockDb): InboxItem[] {
+  return db.batches
+    .filter((b) => b.status === "SETTLED" || b.status === "FAILED")
+    .map((b) => {
+      const failed = b.status === "FAILED";
+      return {
+        id: `batch-${b.id}`,
+        section: "recent" as const,
+        tone: (failed ? "alert" : "default") as InboxTone,
+        title: failed ? "ชุดโอนไม่สำเร็จ" : "ชุดโอนสำเร็จ",
+        detail: `${b.id} · ฿ ${money(b.totalAmount)}`,
+        to: { path: `/payouts/batches/${b.id}` },
+        at: batchAt(b),
+      };
+    })
+    .sort((a, b) => b.at.getTime() - a.at.getTime())
+    .slice(0, 5)
+    .map(({ at: _at, ...item }) => item);
+}
+
+function merchantRecent(db: MockDb, merchantId: string, topUps: TopUpEvent[]): InboxItem[] {
+  const rows: (InboxItem & { at: Date })[] = db.payouts
+    .filter((p) => p.merchantId === merchantId && (p.status === "COMPLETED" || p.status === "FAILED"))
+    .map((p) => {
+      const failed = p.status === "FAILED";
+      return {
+        id: `payout-${p.referenceId}`,
+        section: "recent" as const,
+        tone: (failed ? "alert" : "default") as InboxTone,
+        title: failed ? "โอนไม่สำเร็จ" : "โอนสำเร็จ",
+        detail: `${p.referenceId} · ฿ ${money(p.amount)}`,
+        to: { path: `/payouts/${p.referenceId}` },
+        at: payoutAt(p),
+      };
+    });
+  for (const t of topUps.filter((e) => e.merchantId === merchantId)) {
+    rows.push({
+      id: t.id,
+      section: "recent",
+      tone: "default",
+      title: "เติมเงินเข้าสมุด",
+      detail: `฿ ${money(t.amount)}`,
+      to: { path: "/payouts/overview" },
+      at: t.at,
+    });
+  }
+  return rows
+    .sort((a, b) => b.at.getTime() - a.at.getTime())
+    .slice(0, 5)
+    .map(({ at: _at, ...item }) => item);
+}
+
+export function listInbox(db: MockDb, args: ListInboxArgs, topUps: TopUpEvent[] = []): Inbox {
+  const live = args.isAdmin ? adminLive(db, args.demo) : merchantLive(db, args.merchantId);
+  const recent = args.isAdmin
+    ? adminRecent(db)
+    : merchantRecent(db, args.merchantId, topUps);
+  return { live, recent, badgeCount: live.length };
+}
