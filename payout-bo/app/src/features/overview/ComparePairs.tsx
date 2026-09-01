@@ -1,10 +1,11 @@
-import { Area, Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
-import type { PeriodMetrics, Payout } from "../../mock/types";
+import { Area, Line, LineChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import type { Payout, PayoutStatus } from "../../mock/types";
 import { money, pct } from "../../lib/money";
 import { metrics, queueAge } from "../../mock/query";
-import { statusLabel } from "../../lib/status";
+import { routeLabel, statusLabel } from "../../lib/status";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
+import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 
 const tsConfig = {
@@ -12,11 +13,25 @@ const tsConfig = {
   previous: { label: "ช่วงก่อน", color: "var(--muted-foreground)" },
 } satisfies ChartConfig;
 
-const funnelConfig = {
-  count: { label: "ใบ", color: "var(--chart-2)" },
-} satisfies ChartConfig;
-
 type SeriesPoint = { label: string; current: number | null; previous: number | null };
+
+const STATUS_ORDER: PayoutStatus[] = [
+  "COMPLETED",
+  "PROCESSING",
+  "PENDING",
+  "NEEDS_REVIEW",
+  "FAILED",
+  "REJECTED",
+];
+
+const STATUS_STACK_CLASS: Record<PayoutStatus, string> = {
+  COMPLETED: "bg-success",
+  PROCESSING: "bg-primary",
+  PENDING: "bg-muted-foreground/45",
+  NEEDS_REVIEW: "bg-warning",
+  FAILED: "bg-destructive",
+  REJECTED: "bg-orange-500",
+};
 
 function ChartLegendRow() {
   return (
@@ -74,7 +89,7 @@ function CompletedAmountChart({ ts }: { ts: SeriesPoint[] }) {
 
 const SUCCESS_TARGET = 98;
 
-function SuccessRateChart({ rateTs, m, pm }: { rateTs: SeriesPoint[]; m: PeriodMetrics; pm: PeriodMetrics }) {
+function SuccessRateChart({ rateTs, m, pm }: { rateTs: SeriesPoint[]; m: ReturnType<typeof metrics>; pm: ReturnType<typeof metrics> }) {
   const data = rateTs.map((d) => ({
     ...d,
     current: d.current ?? undefined,
@@ -128,6 +143,88 @@ function SuccessRateChart({ rateTs, m, pm }: { rateTs: SeriesPoint[]; m: PeriodM
   );
 }
 
+function RoutePerformanceBars({
+  rows,
+  showHouse,
+}: {
+  rows: Payout[];
+  showHouse: boolean;
+}) {
+  const routes = (["SAME_BANK", "INTERBANK"] as const).map((r) => ({
+    route: r,
+    m: metrics(rows.filter((p) => p.route === r)),
+  }));
+  const same = routes.find((x) => x.route === "SAME_BANK")!;
+  const inter = routes.find((x) => x.route === "INTERBANK")!;
+  const deltaPts = (inter.m.successRate - same.m.successRate) * 100;
+
+  return (
+    <div className="flex flex-col gap-4">
+      {routes.map(({ route, m }) => (
+        <div key={route} className="space-y-1.5">
+          <div className="flex items-start justify-between gap-2 text-[11px]">
+            <span className="font-medium text-foreground">{routeLabel(route)}</span>
+            <span className="text-right tabular-nums text-muted-foreground">
+              {m.count} ใบ · {money(m.amount)}
+              {showHouse && route === "INTERBANK" ? ` · ค่าโอน ${money(m.incurred)}` : showHouse ? " · ค่าโอน 0.00" : null}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Progress value={m.successRate * 100} className="h-1.5 flex-1" />
+            <span className="w-10 text-right text-[11px] font-medium tabular-nums text-foreground">{pct(m.successRate)}</span>
+          </div>
+        </div>
+      ))}
+      {same.m.count > 0 && inter.m.count > 0 ? (
+        <p className={cn("text-[11px]", deltaPts < 0 ? "text-warning" : "text-muted-foreground")}>
+          ข้ามธนาคาร {deltaPts >= 0 ? "สูงกว่า" : "ต่ำกว่า"} ในธนาคาร {Math.abs(deltaPts).toFixed(1)} จุด
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function StatusStack({ rows }: { rows: Payout[] }) {
+  const total = rows.length;
+  const segments = STATUS_ORDER.map((status) => ({
+    status,
+    label: statusLabel(status),
+    count: rows.filter((p) => p.status === status).length,
+  })).filter((s) => s.count > 0);
+
+  if (!total) {
+    return <p className="text-xs text-muted-foreground">ไม่มีใบในช่วงที่เลือก</p>;
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex h-2.5 overflow-hidden rounded-full bg-muted">
+        {segments.map((s) => (
+          <div
+            key={s.status}
+            className={cn("h-full min-w-0 transition-all", STATUS_STACK_CLASS[s.status])}
+            style={{ width: `${(s.count / total) * 100}%` }}
+            title={`${s.label} ${s.count} (${((s.count / total) * 100).toFixed(1)}%)`}
+          />
+        ))}
+      </div>
+      <div className="space-y-1">
+        {segments.map((s) => (
+          <div key={s.status} className="flex items-center justify-between gap-2 text-[11px]">
+            <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+              <i className={cn("inline-block size-2 rounded-sm", STATUS_STACK_CLASS[s.status])} />
+              {s.label}
+            </span>
+            <span className="tabular-nums text-foreground">
+              {s.count} · {((s.count / total) * 100).toFixed(1)}%
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function ComparePairs({
   rows,
   queue,
@@ -141,15 +238,10 @@ export function ComparePairs({
   queue: Payout[];
   ts: SeriesPoint[];
   rateTs: SeriesPoint[];
-  m: PeriodMetrics;
-  pm: PeriodMetrics;
+  m: ReturnType<typeof metrics>;
+  pm: ReturnType<typeof metrics>;
   showHouse: boolean;
 }) {
-  const routes = (["SAME_BANK", "INTERBANK"] as const).map((r) => ({ route: r, m: metrics(rows.filter((p) => p.route === r)) }));
-  const fn = (["PENDING", "PROCESSING", "COMPLETED", "FAILED", "REJECTED", "NEEDS_REVIEW"] as const).map((s) => ({
-    name: statusLabel(s),
-    count: rows.filter((p) => p.status === s).length,
-  }));
   const ages = queueAge(queue);
   const openCount = ages.reduce((s, a) => s + a.count, 0);
   const ageMax = Math.max(1, ...ages.map((a) => a.count));
@@ -163,47 +255,20 @@ export function ComparePairs({
       <div className="grid gap-3 lg:grid-cols-3">
         <Card size="sm">
           <CardHeader>
-            <CardDescription>คู่ 2 — ในธนาคาร vs ข้ามธนาคาร</CardDescription>
+            <CardDescription>คู่ 2 — ประสิทธิภาพเส้นทาง</CardDescription>
+            <CardTitle className="text-[13px] font-semibold">ในธนาคาร vs ข้ามธนาคาร</CardTitle>
           </CardHeader>
           <CardContent>
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>เส้นทาง</th>
-                  <th className="num">ใบ</th>
-                  <th className="num">ยอด</th>
-                  <th className="num">สำเร็จ</th>
-                  {showHouse ? <th className="num">ค่าโอน</th> : null}
-                </tr>
-              </thead>
-              <tbody>
-                {routes.map((x) => (
-                  <tr key={x.route}>
-                    <td>{x.route === "INTERBANK" ? "ข้ามธนาคาร" : "ในธนาคาร"}</td>
-                    <td className="num">{x.m.count}</td>
-                    <td className="num">{money(x.m.amount)}</td>
-                    <td className="num">{pct(x.m.successRate)}</td>
-                    {showHouse ? <td className="num">{money(x.m.incurred)}</td> : null}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <RoutePerformanceBars rows={rows} showHouse={showHouse} />
           </CardContent>
         </Card>
         <Card size="sm">
           <CardHeader>
-            <CardDescription>คู่ 3 — กรวยสถานะ + อายุคิวตอนนี้</CardDescription>
+            <CardDescription>คู่ 3 — สัดส่วนสถานะช่วง</CardDescription>
+            <CardTitle className="text-[13px] font-semibold">{rows.length} ใบในช่วงที่เลือก</CardTitle>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={funnelConfig} className="aspect-auto h-48">
-              <BarChart data={fn} layout="vertical" accessibilityLayer>
-                <CartesianGrid horizontal={false} />
-                <XAxis type="number" hide />
-                <YAxis type="category" dataKey="name" width={72} tickLine={false} axisLine={false} />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="count" fill="var(--color-count)" radius={2} />
-              </BarChart>
-            </ChartContainer>
+            <StatusStack rows={rows} />
           </CardContent>
         </Card>
         <Card size="sm">

@@ -1,5 +1,11 @@
 import { Link, useLocation } from "react-router-dom";
-import { BanknoteIcon } from "lucide-react";
+import {
+  BanknoteIcon,
+  ChevronDown,
+  LayoutDashboardIcon,
+  LayersIcon,
+  ListIcon,
+} from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -15,7 +21,7 @@ import {
   SidebarMenuSubItem,
   SidebarSeparator,
 } from "@/components/ui/sidebar";
-import { useViewer } from "../state/ViewerProvider";
+import { useViewer } from "../state/use-viewer";
 
 export function AppSidebar() {
   const { pathname } = useLocation();
@@ -27,10 +33,11 @@ export function AppSidebar() {
       !pathname.startsWith("/payouts/batches"));
   const batchesOn = pathname.startsWith("/payouts/batches");
   const overviewOn = pathname.startsWith("/payouts/overview") || pathname === "/";
+  const payoutGroupOn = overviewOn || payoutsOn || batchesOn;
 
   return (
-    <Sidebar collapsible="icon">
-      <SidebarHeader>
+    <Sidebar collapsible="none">
+      <SidebarHeader className="flex h-16 w-full shrink-0 items-center border-b border-sidebar-border bg-sidebar px-2">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
@@ -48,27 +55,37 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={overviewOn || payoutsOn || batchesOn}>
+                <SidebarMenuButton asChild isActive={payoutGroupOn}>
                   <Link to="/payouts/overview">
                     <BanknoteIcon />
                     <span>โอนออก</span>
+                    <ChevronDown className="ml-auto size-4 shrink-0 opacity-60" />
                   </Link>
                 </SidebarMenuButton>
                 <SidebarMenuSub>
                   <SidebarMenuSubItem>
                     <SidebarMenuSubButton asChild isActive={overviewOn}>
-                      <Link to="/payouts/overview">ภาพรวม</Link>
+                      <Link to="/payouts/overview">
+                        <LayoutDashboardIcon />
+                        <span>ภาพรวม</span>
+                      </Link>
                     </SidebarMenuSubButton>
                   </SidebarMenuSubItem>
                   <SidebarMenuSubItem>
                     <SidebarMenuSubButton asChild isActive={payoutsOn}>
-                      <Link to="/payouts">รายการใบถอน</Link>
+                      <Link to="/payouts">
+                        <ListIcon />
+                        <span>รายการใบถอน</span>
+                      </Link>
                     </SidebarMenuSubButton>
                   </SidebarMenuSubItem>
                   {isAdmin ? (
                     <SidebarMenuSubItem>
                       <SidebarMenuSubButton asChild isActive={batchesOn}>
-                        <Link to="/payouts/batches">ชุดโอน</Link>
+                        <Link to="/payouts/batches">
+                          <LayersIcon />
+                          <span>ชุดโอน</span>
+                        </Link>
                       </SidebarMenuSubButton>
                     </SidebarMenuSubItem>
                   ) : null}

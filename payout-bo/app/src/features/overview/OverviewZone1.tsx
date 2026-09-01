@@ -69,7 +69,7 @@ function FocusRow({
       type="button"
       onClick={onClick}
       className={cn(
-        "grid w-full grid-cols-[auto_1fr_auto] items-center gap-2.5 rounded-lg border border-border/80 bg-white/[0.018] p-2.5 text-left transition-colors hover:bg-white/[0.03]",
+        "surface-nested grid w-full grid-cols-[auto_1fr_auto] items-center gap-2.5 rounded-sm border border-foreground/10 p-2.5 text-left transition-colors hover:bg-foreground/3",
         onClick && "cursor-pointer",
       )}
     >
@@ -315,7 +315,7 @@ function FollowUpHeroRight({
   const [tab, setTab] = useState<QueueTab>("payouts");
 
   return (
-    <div className="flex h-full flex-col bg-gradient-to-br from-[#151518] to-[#101011] p-4">
+    <div className="flex h-full flex-col p-4">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="inline-flex items-center gap-2">
           <h2 className="text-[13px] font-semibold">ต้องติดตามตอนนี้</h2>

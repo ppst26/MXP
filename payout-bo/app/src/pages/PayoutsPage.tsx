@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { db } from "../mock/seed";
 import { listPayouts, merchById, metrics } from "../mock/query";
 import { useFilters } from "../state/FilterProvider";
-import { useScopedMerchantId, useViewer } from "../state/ViewerProvider";
+import { useScopedMerchantId, useViewer } from "../state/use-viewer";
 import { DateMerchantFilter } from "../layout/DateMerchantFilter";
 import { PayoutFilterBar } from "../features/payouts/PayoutFilterBar";
 import { PayoutSummary } from "../features/payouts/PayoutSummary";
@@ -34,19 +34,27 @@ export function PayoutsPage() {
   const slice = rows.slice((page - 1) * limit, page * limit);
 
   return (
-    <>
-      <div>
+    <div className="flex flex-col gap-4">
+      <header>
         <h1 className="font-heading text-xl tracking-tight">รายการใบถอน</h1>
         <p className="text-sm text-muted-foreground">
-          /payouts · พบ {rows.length} ใบ ตามตัวกรอง · {isAdmin ? `ทั้งระบบ ${db.payouts.length} ใบ` : `${shop?.name ?? "ร้าน"} · ใบในสายนี้เท่านั้น`}
+          พบ {rows.length} ใบ ตามตัวกรอง ·{" "}
+          {isAdmin ? `ทั้งระบบ ${db.payouts.length} ใบ` : `${shop?.name ?? "ร้าน"} · ใบในสายนี้เท่านั้น`}
         </p>
-      </div>
-      <DateMerchantFilter extra={<PayoutFilterBar />} />
+      </header>
+
+      <section className="flex flex-col gap-3" aria-label="ตัวกรอง">
+        <DateMerchantFilter />
+        <PayoutFilterBar />
+      </section>
+
       <PayoutSummary m={m} showBankFee={isAdmin} />
+
       <Zone title="ตารางใบ">
-        <div className="overflow-auto">
+        <div className="overflow-auto rounded-sm surface-nested ring-1 ring-foreground/5">
           <PayoutTable
             rows={slice}
+            relaxed
             showBankFee={isAdmin}
             onOpen={(ref) => nav(`/payouts/${ref}`)}
             onOpenBatch={
@@ -73,6 +81,6 @@ export function PayoutsPage() {
           </div>
         </div>
       </Zone>
-    </>
+    </div>
   );
 }

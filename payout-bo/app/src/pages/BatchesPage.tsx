@@ -26,23 +26,31 @@ export function BatchesPage() {
     stuckBatchCount: db.batches.filter((b) => b.stuck).length,
     now: db.now,
   }).filter((a) => a.id === "stuck");
+
   return (
-    <>
-      <div>
+    <div className="flex flex-col gap-4">
+      <header>
         <h1 className="font-heading text-xl tracking-tight">รายการชุดโอน</h1>
         <p className="text-sm text-muted-foreground">
-          /payouts/batches · แพลตฟอร์มแอดมิน · หนึ่งแถว = หนึ่งออเดอร์ธนาคาร · ทั้งระบบ {db.batches.length} ชุด
+          แพลตฟอร์มแอดมิน · หนึ่งแถว = หนึ่งออเดอร์ธนาคาร · ทั้งระบบ {db.batches.length} ชุด · พบ {rows.length}{" "}
+          ชุดตามตัวกรอง
         </p>
-      </div>
-      <HouseBanners alerts={alerts} />
-      <BatchFilterBar />
+      </header>
+
+      {alerts.length ? <HouseBanners alerts={alerts} /> : null}
+
+      <section aria-label="ตัวกรอง">
+        <BatchFilterBar />
+      </section>
+
       <BatchSummary rows={rows} />
+
       <Zone title="ตารางชุด">
-        <div className="overflow-auto">
-          <BatchTable rows={rows} onOpen={(id) => nav(`/payouts/batches/${id}`)} />
+        <div className="overflow-auto rounded-sm surface-nested ring-1 ring-foreground/5">
+          <BatchTable rows={rows} relaxed onOpen={(id) => nav(`/payouts/batches/${id}`)} />
         </div>
         <p className="text-xs text-muted-foreground">แถว FAILED ของชุด ≠ ใบล้ม · ใบถูกปล่อยกลับคิวรอส่ง</p>
       </Zone>
-    </>
+    </div>
   );
 }

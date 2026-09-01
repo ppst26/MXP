@@ -1,14 +1,14 @@
 import type { ReactNode } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { db } from "../mock/seed";
 import { money } from "../lib/money";
 import { fmtDT } from "../lib/bangkok";
 import { StatusPill } from "../lib/StatusPill";
 import { payoutLabel } from "../lib/status";
 import { PayoutTable } from "../features/payouts/PayoutTable";
+import { DetailPageHeader, DetailPageShell } from "@/components/page-back-link";
 import { Zone } from "@/components/metric-card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 function Row({ k, children }: { k: string; children: ReactNode }) {
@@ -24,19 +24,25 @@ export function BatchDetailPage() {
   const { batchId } = useParams();
   const nav = useNavigate();
   const b = db.batches.find((x) => x.id === batchId) || db.batches[0];
-  if (!b) return <h1 className="font-heading text-xl">ไม่พบชุด</h1>;
+  if (!b) {
+    return (
+      <DetailPageShell backTo="/payouts/batches" backLabel="กลับรายการชุด">
+        <DetailPageHeader>
+          <h1 className="font-heading text-xl">ไม่พบชุด</h1>
+        </DetailPageHeader>
+      </DetailPageShell>
+    );
+  }
   const items = db.payouts.filter((p) => b.itemRefs.includes(p.referenceId));
   const reserved = items.reduce((s, p) => s + p.reservedFee, 0);
 
   return (
-    <>
-      <div>
-        <h1 className="font-heading text-xl tracking-tight">/payouts/batches/{b.id}</h1>
-        <p className="text-sm text-muted-foreground">รายละเอียดหนึ่งชุด · อ่านอย่างเดียว · ไม่มีปุ่มส่งซ้ำ / ปิดยอด</p>
-      </div>
-      <Button variant="link" asChild>
-        <Link to="/payouts/batches">← กลับรายการชุด</Link>
-      </Button>
+    <DetailPageShell backTo="/payouts/batches" backLabel="กลับรายการชุด">
+      <DetailPageHeader>
+        <h1 className="font-heading text-xl tracking-tight">รายละเอียดชุด</h1>
+        <p className="font-mono text-sm text-muted-foreground">{b.id}</p>
+        <p className="text-sm text-muted-foreground">อ่านอย่างเดียว · ไม่มีปุ่มส่งซ้ำ / ปิดยอด</p>
+      </DetailPageHeader>
       <div className="flex flex-wrap items-center gap-3">
         <StatusPill status={b.status} />
         <strong>
@@ -96,6 +102,6 @@ export function BatchDetailPage() {
         {b.confirmedAt ? <div>{fmtDT(b.confirmedAt)} ธนาคารรับชุด</div> : null}
         {b.settledAt ? <div>{fmtDT(b.settledAt)} ปิดชุด SETTLED</div> : <p className="text-xs text-muted-foreground">ยังไม่มี settled_at</p>}
       </Zone>
-    </>
+    </DetailPageShell>
   );
 }

@@ -88,6 +88,10 @@
     --success: #27a644;
     --warning: #c9a227;
     --review: #a78bfa;
+    --surface-spot: rgb(255 255 255 / 0.08);
+    --surface-accent: color-mix(in oklab, var(--primary) 16%, transparent);
+    --control-bg: color-mix(in oklab, var(--input) 30%, transparent);
+    --control-bg-hover: color-mix(in oklab, var(--input) 50%, transparent);
 }
 
 @layer base {
@@ -103,14 +107,64 @@
 }
 
 @layer components {
+  .surface {
+    isolation: isolate;
+    --control-bg: #010102;
+    --control-bg-hover: #010102;
+    background-color: var(--card);
+    background-image:
+      radial-gradient(120% 80% at 100% -8%, var(--surface-spot), transparent 52%),
+      radial-gradient(90% 65% at 6% 110%, var(--surface-accent), transparent 55%),
+      linear-gradient(168deg, rgb(255 255 255 / 0.04) 0%, transparent 42%);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.07),
+      0 10px 40px rgb(0 0 0 / 0.28);
+  }
+  .surface[data-tone="warn"] {
+    --surface-accent: color-mix(in oklab, var(--warning) 22%, transparent);
+  }
+  .surface[data-tone="alert"] {
+    --surface-accent: color-mix(in oklab, var(--destructive) 20%, transparent);
+  }
+  .surface[data-tone="quiet"] {
+    --surface-spot: rgb(255 255 255 / 0.035);
+    --surface-accent: transparent;
+  }
+  .surface-nested {
+    background-image: linear-gradient(180deg, rgb(255 255 255 / 0.045), rgb(255 255 255 / 0.015));
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05);
+  }
+  /* ช่องกรอก / select ใน Card — border + focus (พื้นผ่าน --control-bg) */
+  .surface [data-slot="input"]:hover,
+  .surface [data-slot="select-trigger"]:hover {
+    border-color: #34343a;
+  }
+  .surface [data-slot="input"]:focus-visible,
+  .surface [data-slot="select-trigger"]:focus-visible {
+    border-color: var(--ring);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 35%, transparent);
+  }
+  [data-slot="select-item"][data-state="checked"] {
+    background-color: color-mix(in oklab, var(--primary) 18%, transparent);
+    color: var(--foreground);
+  }
   .data-table {
     @apply w-full text-xs;
   }
   .data-table th {
-    @apply border-b border-border bg-muted/50 px-2 py-2 text-left font-medium text-muted-foreground;
+    @apply border-b border-border bg-muted/50 px-3 py-2.5 text-left font-medium text-muted-foreground;
   }
   .data-table td {
-    @apply border-b border-border px-2 py-2 whitespace-nowrap;
+    @apply border-b border-border px-3 py-2 align-middle whitespace-nowrap;
+  }
+  .data-table.relaxed th {
+    @apply px-4 py-3;
+  }
+  .data-table.relaxed td {
+    @apply px-4 py-3.5 leading-relaxed;
+  }
+  .data-table.relaxed tbody tr:last-child td {
+    @apply border-b-0;
   }
   .data-table tr.clickable {
     @apply cursor-pointer hover:bg-muted/40;
@@ -118,5 +172,59 @@
   .data-table .num,
   .data-table th.num {
     @apply text-right tabular-nums;
+  }
+  .payout-event {
+    position: relative;
+    display: grid;
+    grid-template-columns: 90px 18px 1fr;
+    min-height: 54px;
+  }
+  .payout-event-time {
+    padding-top: 4px;
+    color: var(--muted-foreground);
+    font-size: 10px;
+    text-align: right;
+  }
+  .payout-event-time b {
+    display: block;
+    color: color-mix(in oklab, var(--foreground) 75%, var(--muted-foreground));
+    font-weight: 500;
+  }
+  .payout-event-rail {
+    position: relative;
+    display: flex;
+    justify-content: center;
+  }
+  .payout-event-rail::after {
+    position: absolute;
+    top: 16px;
+    bottom: -7px;
+    width: 1px;
+    background: var(--border);
+    content: "";
+  }
+  .payout-event:last-child .payout-event-rail::after {
+    display: none;
+  }
+  .payout-event-dot {
+    z-index: 1;
+    width: 9px;
+    height: 9px;
+    margin-top: 7px;
+    border: 2px solid var(--card);
+    border-radius: 50%;
+    background: #52525b;
+    box-shadow: 0 0 0 1px #52525b;
+  }
+  .payout-event-dot.success {
+    background: var(--success);
+    box-shadow: 0 0 0 1px var(--success);
+  }
+  .payout-event-dot.blue {
+    background: #93c5fd;
+    box-shadow: 0 0 0 1px #93c5fd;
+  }
+  .payout-event-content {
+    padding: 0 0 16px 9px;
   }
 }

@@ -1,9 +1,11 @@
+import type { ReactNode } from "react";
 import { BATCH_STATUSES, batchLabel } from "../../lib/status";
 import { useFilters } from "../../state/FilterProvider";
+import type { DatePreset } from "../../lib/bangkok";
 import { DateRangePicker } from "../../layout/DateRangePicker";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   Select,
   SelectContent,
@@ -13,22 +15,35 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export function BatchFilterBar() {
-  const { filters, setFilters } = useFilters();
+const PRESETS: [DatePreset, string][] = [
+  ["today", "วันนี้"],
+  ["yesterday", "เมื่อวาน"],
+  ["d7", "7 วัน"],
+  ["d14", "14 วัน"],
+  ["d30", "ทั้งเดือน"],
+];
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <Card size="sm">
-      <CardContent className="flex flex-wrap items-end gap-3">
-        <div className="flex flex-col gap-1">
-          <Label>จาก–ถึง</Label>
-          <DateRangePicker />
-        </div>
-        <div className="flex flex-col gap-1">
-          <Label>สถานะชุด</Label>
+    <div className="flex flex-col gap-1">
+      <Label className="text-[11px] text-muted-foreground">{label}</Label>
+      {children}
+    </div>
+  );
+}
+
+export function BatchFilterBar() {
+  const { filters, setFilters, setPreset } = useFilters();
+
+  return (
+    <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
+      <div className="flex flex-wrap items-end gap-x-3 gap-y-3">
+        <Field label="สถานะชุด">
           <Select
             value={filters.batchStatus || "all"}
             onValueChange={(v) => setFilters({ batchStatus: v === "all" ? "" : v })}
           >
-            <SelectTrigger size="sm">
+            <SelectTrigger size="sm" className="w-[148px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -42,18 +57,21 @@ export function BatchFilterBar() {
               </SelectGroup>
             </SelectContent>
           </Select>
-        </div>
-        <div className="flex min-w-48 flex-1 flex-col gap-1">
-          <Label>id / เลขออเดอร์ / package</Label>
-          <Input value={filters.batchQ} onChange={(e) => setFilters({ batchQ: e.target.value })} />
-        </div>
-        <div className="flex flex-col gap-1">
-          <Label>ค้างเกินเกณฑ์</Label>
+        </Field>
+        <Field label="id / เลขออเดอร์ / package">
+          <Input
+            className="h-8 w-[220px] sm:w-[260px]"
+            value={filters.batchQ}
+            placeholder="ค้นหา…"
+            onChange={(e) => setFilters({ batchQ: e.target.value })}
+          />
+        </Field>
+        <Field label="ค้างเกินเกณฑ์">
           <Select
             value={filters.batchStuck ? "1" : "all"}
             onValueChange={(v) => setFilters({ batchStuck: v === "1" })}
           >
-            <SelectTrigger size="sm">
+            <SelectTrigger size="sm" className="w-[168px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -63,8 +81,31 @@ export function BatchFilterBar() {
               </SelectGroup>
             </SelectContent>
           </Select>
-        </div>
-      </CardContent>
-    </Card>
+        </Field>
+      </div>
+
+      <div className="flex flex-wrap items-end justify-end gap-2 sm:gap-3">
+        <Field label="ช่วง">
+          <ToggleGroup
+            type="single"
+            size="sm"
+            variant="outline"
+            value={filters.preset}
+            onValueChange={(v) => {
+              if (v) setPreset(v as DatePreset);
+            }}
+          >
+            {PRESETS.map(([id, t]) => (
+              <ToggleGroupItem key={id} value={id}>
+                {t}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+        </Field>
+        <Field label="จาก–ถึง">
+          <DateRangePicker />
+        </Field>
+      </div>
+    </div>
   );
 }

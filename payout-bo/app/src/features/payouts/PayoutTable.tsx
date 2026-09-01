@@ -9,18 +9,26 @@ export function PayoutTable({
   rows,
   hideBatch,
   showBankFee = true,
+  relaxed = false,
   onOpen,
   onOpenBatch,
 }: {
   rows: Payout[];
   hideBatch?: boolean;
   showBankFee?: boolean;
+  relaxed?: boolean;
   onOpen: (ref: string) => void;
   onOpenBatch?: (id: string) => void;
 }) {
-  if (!rows.length) return <p className="py-8 text-center text-sm text-muted-foreground">ไม่พบรายการตามตัวกรอง</p>;
+  if (!rows.length) {
+    return (
+      <p className={relaxed ? "py-12 text-center text-sm text-muted-foreground" : "py-8 text-center text-sm text-muted-foreground"}>
+        ไม่พบรายการตามตัวกรอง
+      </p>
+    );
+  }
   return (
-    <table className="data-table">
+    <table className={relaxed ? "data-table relaxed" : "data-table"}>
       <thead>
         <tr>
           <th>เวลาสร้าง</th>
@@ -67,10 +75,12 @@ export function PayoutTable({
                 <RoutePill route={p.route} />
               </td>
               {showBankFee ? <td className="num">{fee}</td> : null}
-              <td>
+              <td className="max-w-[220px] truncate" title={`${p.recipientBankName} ${p.recipientBankCode} · ${p.recipientAccountNo} · ${p.recipientName}`}>
                 {p.recipientBankName} {p.recipientBankCode} · {p.recipientAccountNo} · {p.recipientName}
               </td>
-              <td className={p.nameMismatch ? "bg-warning/15" : undefined}>{p.accountToName || "—"}</td>
+              <td className={p.nameMismatch ? "bg-warning/15 max-w-[140px] truncate" : "max-w-[140px] truncate"} title={p.accountToName || undefined}>
+                {p.accountToName || "—"}
+              </td>
               {!hideBatch && (
                 <td>
                   {p.batchId ? (

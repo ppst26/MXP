@@ -279,7 +279,11 @@ function createDb(): MockDb {
         p.bankItemId = pad(idx + 1, 2);
         p.bankOrderId = order + "-" + p.bankItemId;
         if (p.status === "COMPLETED") {
-          p.bankFee = p.route === "INTERBANK" ? 5 : 0;
+          if (p.route === "INTERBANK" && status === "SETTLED" && idx === 0 && fmtD(day) === fmtD(NOW)) {
+            p.bankFee = 4.5;
+          } else {
+            p.bankFee = p.route === "INTERBANK" ? 5 : 0;
+          }
           p.bankFeeEstimated = false;
         }
         p.timeline = [

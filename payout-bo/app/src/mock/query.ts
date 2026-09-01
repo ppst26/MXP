@@ -1,5 +1,6 @@
 import type {
   Batch,
+  BatchPeriodSummary,
   Merchant,
   MerchantBooks,
   MerchantWatchRow,
@@ -53,11 +54,38 @@ function inMerchant(p: Payout, merchantId: string): boolean {
   return ids.includes(p.merchantId);
 }
 
+const INTERBANK_FEE_ESTIMATE = 5;
+
+function countableBankFeeRows(rows: Payout[]): Payout[] {
+  return rows.filter(
+    (p) =>
+      (p.status === "COMPLETED" && p.route === "INTERBANK") || (p.status === "FAILED" && p.bankFee > 0),
+  );
+}
+
+function rowBankFee(p: Payout): { amount: number; estimated: boolean } {
+  if (p.status === "COMPLETED" && p.route === "INTERBANK") {
+    if (!p.bankFeeEstimated) return { amount: p.bankFee, estimated: false };
+    return { amount: INTERBANK_FEE_ESTIMATE, estimated: true };
+  }
+  if (p.status === "FAILED" && p.bankFee > 0) {
+    return { amount: p.bankFee, estimated: p.bankFeeEstimated };
+  }
+  return { amount: 0, estimated: true };
+}
+
 export function metrics(rows: Payout[]): PeriodMetrics {
   const completed = rows.filter((p) => p.status === "COMPLETED");
   const failed = rows.filter((p) => p.status === "FAILED");
   const rejected = rows.filter((p) => p.status === "REJECTED");
-  const incurredRows = completed.filter((p) => p.route === "INTERBANK");
+  const feeRows = countableBankFeeRows(rows);
+  const feeParts = feeRows.map(rowBankFee);
+  const incurredCount = feeRows.length;
+  const incurredEstimate = incurredCount * INTERBANK_FEE_ESTIMATE;
+  const incurred = feeParts.reduce((s, f) => s + f.amount, 0);
+  const bankFeeAllEstimated = feeParts.every((f) => f.estimated);
+  const hasRealBankFee = feeParts.some((f) => !f.estimated);
+  const bankFeeDelta = hasRealBankFee ? incurred - incurredEstimate : null;
   const exposed = rows.filter(
     (p) => (p.status === "PENDING" || p.status === "PROCESSING") && p.route === "INTERBANK",
   );
@@ -73,11 +101,27 @@ export function metrics(rows: Payout[]): PeriodMetrics {
     rejectedAmount: rejected.reduce((s, p) => s + p.amount, 0),
     reservedFee: rows.reduce((s, p) => s + p.reservedFee, 0),
     successRate: successDen ? completed.length / successDen : 0,
-    incurred: incurredRows.length * 5,
-    incurredCount: incurredRows.length,
+    incurred,
+    incurredCount,
+    incurredEstimate,
+    bankFeeDelta,
+    bankFeeAllEstimated: bankFeeAllEstimated || incurredCount === 0,
     sameBank: rows.filter((p) => p.route === "SAME_BANK").length,
     interbank: rows.filter((p) => p.route === "INTERBANK").length,
-    exposed: exposed.length * 5,
+    exposed: exposed.length * INTERBANK_FEE_ESTIMATE,
+  };
+}
+
+export function batchPeriodSummary(batches: Batch[]): BatchPeriodSummary {
+  return {
+    total: batches.length,
+    settled: batches.filter((b) => b.status === "SETTLED").length,
+    sending: batches.filter((b) => b.status === "SENDING").length,
+    sent: batches.filter((b) => b.status === "SENT").length,
+    pending: batches.filter((b) => b.status === "PENDING").length,
+    needsReview: batches.filter((b) => b.status === "NEEDS_REVIEW").length,
+    failed: batches.filter((b) => b.status === "FAILED").length,
+    stuck: batches.filter((b) => b.stuck).length,
   };
 }
 

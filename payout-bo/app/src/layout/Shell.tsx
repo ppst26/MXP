@@ -1,9 +1,10 @@
 import { Outlet } from "react-router-dom";
 import { db } from "../mock/seed";
 import { fmtDT } from "../lib/bangkok";
-import { useViewer } from "../state/ViewerProvider";
-import type { Role } from "../state/ViewerProvider";
+import { useViewer } from "../state/use-viewer";
+import type { Role } from "../state/use-viewer";
 import { AppSidebar } from "./AppSidebar";
+import { AppBreadcrumb } from "./AppBreadcrumb";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -22,8 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { Separator } from "@/components/ui/separator";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
 export function Shell() {
   const { role, isAdmin, demo, setRole, setDemo } = useViewer();
@@ -32,13 +32,9 @@ export function Shell() {
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
-          <SidebarTrigger />
-          <Separator orientation="vertical" className="h-4" />
-          <span className="truncate text-xs text-muted-foreground">
-            MaxPay BO · mock · ข้อมูลจำลอง
-          </span>
+      <SidebarInset className="min-h-svh">
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4">
+          <AppBreadcrumb />
           <div className="ml-auto flex items-center gap-2">
             {isAdmin ? (
               <DropdownMenu>

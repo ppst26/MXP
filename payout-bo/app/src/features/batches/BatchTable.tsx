@@ -3,12 +3,26 @@ import { money } from "../../lib/money";
 import { fmtDT } from "../../lib/bangkok";
 import { StatusPill } from "../../lib/StatusPill";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { SummaryMetricCard, SummaryMetricGrid } from "@/components/metric-card";
 
-export function BatchTable({ rows, onOpen }: { rows: Batch[]; onOpen: (id: string) => void }) {
-  if (!rows.length) return <p className="py-8 text-center text-sm text-muted-foreground">ไม่พบชุดตามตัวกรอง</p>;
+export function BatchTable({
+  rows,
+  relaxed = false,
+  onOpen,
+}: {
+  rows: Batch[];
+  relaxed?: boolean;
+  onOpen: (id: string) => void;
+}) {
+  if (!rows.length) {
+    return (
+      <p className={relaxed ? "py-12 text-center text-sm text-muted-foreground" : "py-8 text-center text-sm text-muted-foreground"}>
+        ไม่พบชุดตามตัวกรอง
+      </p>
+    );
+  }
   return (
-    <table className="data-table">
+    <table className={relaxed ? "data-table relaxed" : "data-table"}>
       <thead>
         <tr>
           <th>เปิดชุด</th>
@@ -38,17 +52,20 @@ export function BatchTable({ rows, onOpen }: { rows: Batch[]; onOpen: (id: strin
               {money(b.bankFeeIncurred)}
               {b.bankFeeEstimated ? <span className="text-muted-foreground"> (ประมาณ)</span> : null}
             </td>
-            <td>
+            <td className="max-w-[200px]">
               {b.bankBulkOrderId ? (
-                <>
-                  <Badge variant="warning">มีแล้ว ห้ามส่งซ้ำ</Badge> {b.bankBulkOrderId}
-                </>
+                <span className="inline-flex flex-wrap items-center gap-1">
+                  <Badge variant="warning">มีแล้ว ห้ามส่งซ้ำ</Badge>
+                  <span className="truncate">{b.bankBulkOrderId}</span>
+                </span>
               ) : (
                 <Badge variant="secondary">ยังไม่มี — ส่งใหม่ได้</Badge>
               )}
             </td>
             <td>{b.packageRefNo || "—"}</td>
-            <td>{b.failureReason ? b.failureReason.slice(0, 40) : "—"}</td>
+            <td className="max-w-[180px] truncate" title={b.failureReason ?? undefined}>
+              {b.failureReason ? b.failureReason.slice(0, 40) : "—"}
+            </td>
           </tr>
         ))}
       </tbody>
@@ -61,30 +78,14 @@ export function BatchSummary({ rows }: { rows: Batch[] }) {
   const amt = rows.reduce((s, b) => s + b.totalAmount, 0);
   const fee = rows.reduce((s, b) => s + b.bankFeeIncurred, 0);
   const open = rows.filter((b) => ["PENDING", "SENDING", "SENT", "NEEDS_REVIEW"].includes(b.status)).length;
+
   return (
-    <Card size="sm">
-      <CardContent className="flex flex-wrap gap-6">
-        <div>
-          <p className="text-xs text-muted-foreground">ชุด</p>
-          <p className="font-medium">{rows.length}</p>
-        </div>
-        <div>
-          <p className="text-xs text-muted-foreground">ใบในชุด</p>
-          <p className="font-medium">{items}</p>
-        </div>
-        <div>
-          <p className="text-xs text-muted-foreground">ยอดโอนในชุด</p>
-          <p className="font-medium">{money(amt)}</p>
-        </div>
-        <div>
-          <p className="text-xs text-muted-foreground">ยังไม่จบ</p>
-          <p className="font-medium">{open}</p>
-        </div>
-        <div>
-          <p className="text-xs text-muted-foreground">ค่าโอนธนาคารที่เกิดแล้ว</p>
-          <p className="font-medium">{money(fee)}</p>
-        </div>
-      </CardContent>
-    </Card>
+    <SummaryMetricGrid>
+      <SummaryMetricCard label="ชุด" value={rows.length} />
+      <SummaryMetricCard label="ใบในชุด" value={items} />
+      <SummaryMetricCard label="ยอดโอนในชุด" value={money(amt)} />
+      <SummaryMetricCard label="ยังไม่จบ" value={open} />
+      <SummaryMetricCard label="ค่าโอนธนาคารที่เกิดแล้ว" value={money(fee)} />
+    </SummaryMetricGrid>
   );
 }

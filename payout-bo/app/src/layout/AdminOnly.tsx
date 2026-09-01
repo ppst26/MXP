@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useViewer } from "../state/ViewerProvider";
+import { useViewer } from "../state/use-viewer";
 
 export function AdminOnly({ children }: { children: ReactNode }) {
   const { isAdmin } = useViewer();

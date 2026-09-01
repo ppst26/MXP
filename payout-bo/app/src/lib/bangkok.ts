@@ -17,6 +17,18 @@ export function fmtDT(d: Date): string {
   return bkk(d).replace("T", " ").slice(0, 19);
 }
 
+export function fmtTime(d: Date): string {
+  return bkk(d).slice(11, 19);
+}
+
+export function fmtDateShort(d: Date): string {
+  return new Date(d).toLocaleDateString("th-TH", { timeZone: TZ, day: "numeric", month: "short" });
+}
+
+export function fmtDTThai(d: Date): string {
+  return new Date(d).toLocaleString("th-TH", { timeZone: TZ, dateStyle: "medium", timeStyle: "medium" });
+}
+
 export function fmtD(d: Date): string {
   return bkk(d).slice(0, 10);
 }

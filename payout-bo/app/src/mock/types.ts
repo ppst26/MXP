@@ -152,9 +152,23 @@ export type PeriodMetrics = {
   successRate: number;
   incurred: number;
   incurredCount: number;
+  incurredEstimate: number;
+  bankFeeDelta: number | null;
+  bankFeeAllEstimated: boolean;
   sameBank: number;
   interbank: number;
   exposed: number;
+};
+
+export type BatchPeriodSummary = {
+  total: number;
+  settled: number;
+  sending: number;
+  sent: number;
+  pending: number;
+  needsReview: number;
+  failed: number;
+  stuck: number;
 };
 
 export type MerchantWatchRow = {

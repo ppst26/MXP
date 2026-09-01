@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useFilters } from "../../state/FilterProvider";
 import { PAYOUT_STATUSES, payoutLabel } from "../../lib/status";
 import type { PayoutStatus } from "../../mock/types";
@@ -5,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -13,6 +15,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
+function Field({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
+  return (
+    <div className={className ?? "flex flex-col gap-1"}>
+      <Label className="text-[11px] text-muted-foreground">{label}</Label>
+      {children}
+    </div>
+  );
+}
 
 export function PayoutFilterBar() {
   const { filters, setFilters } = useFilters();
@@ -23,59 +34,63 @@ export function PayoutFilterBar() {
       listPage: 1,
     });
   };
+
   return (
-    <div className="flex flex-wrap items-end gap-3">
-      {filters.batchId ? (
-        <div className="flex flex-col gap-1">
-          <Label>ชุด</Label>
-          <Button type="button" variant="outline" size="sm" onClick={() => setFilters({ batchId: "", listPage: 1 })}>
-            {filters.batchId} · ล้าง
-          </Button>
+    <Card size="sm" className="py-0">
+      <CardContent className="flex flex-col gap-3 py-3">
+        <div className="flex flex-wrap items-end gap-x-3 gap-y-3">
+          {filters.batchId ? (
+            <Field label="ชุด">
+              <Button type="button" variant="outline" size="sm" onClick={() => setFilters({ batchId: "", listPage: 1 })}>
+                {filters.batchId} · ล้าง
+              </Button>
+            </Field>
+          ) : null}
+          <Field label="อ้างอิง / ออเดอร์ร้าน" className="flex min-w-[200px] flex-1 flex-col gap-1 sm:max-w-xs">
+            <Input
+              className="h-8"
+              value={filters.q}
+              placeholder="referenceId หรือ transactionId"
+              onChange={(e) => setFilters({ q: e.target.value, listPage: 1 })}
+            />
+          </Field>
+          <Field label="เลขบัญชีผู้รับ" className="flex w-full flex-col gap-1 sm:w-40">
+            <Input
+              className="h-8"
+              value={filters.recipientAccount}
+              onChange={(e) => setFilters({ recipientAccount: e.target.value, listPage: 1 })}
+            />
+          </Field>
+          <Field label="ชื่อไม่ตรง" className="flex flex-col gap-1">
+            <Select
+              value={filters.nameMismatch ? "1" : "all"}
+              onValueChange={(v) => setFilters({ nameMismatch: v === "1", listPage: 1 })}
+            >
+              <SelectTrigger size="sm" className="w-[128px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value="all">ทั้งหมด</SelectItem>
+                  <SelectItem value="1">เฉพาะที่ไม่ตรง</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </Field>
         </div>
-      ) : null}
-      <div className="flex min-w-48 flex-1 flex-col gap-1">
-        <Label>อ้างอิง / ออเดอร์ร้าน (ตรงค่า)</Label>
-        <Input
-          value={filters.q}
-          placeholder="referenceId หรือ transactionId"
-          onChange={(e) => setFilters({ q: e.target.value, listPage: 1 })}
-        />
-      </div>
-      <div className="flex min-w-40 flex-1 flex-col gap-1">
-        <Label>เลขบัญชีผู้รับ</Label>
-        <Input
-          value={filters.recipientAccount}
-          onChange={(e) => setFilters({ recipientAccount: e.target.value, listPage: 1 })}
-        />
-      </div>
-      <div className="flex flex-col gap-1">
-        <Label>ชื่อไม่ตรง</Label>
-        <Select
-          value={filters.nameMismatch ? "1" : "all"}
-          onValueChange={(v) => setFilters({ nameMismatch: v === "1", listPage: 1 })}
-        >
-          <SelectTrigger size="sm">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              <SelectItem value="all">ทั้งหมด</SelectItem>
-              <SelectItem value="1">เฉพาะที่ไม่ตรง</SelectItem>
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="flex min-w-64 flex-1 flex-col gap-1">
-        <Label>สถานะใบ (เลือกได้หลายค่า)</Label>
-        <div className="flex flex-wrap gap-3 pt-1">
-          {PAYOUT_STATUSES.map((s) => (
-            <label key={s} className="flex items-center gap-2 text-xs">
-              <Checkbox checked={filters.statuses.includes(s)} onCheckedChange={() => toggle(s)} />
-              {payoutLabel(s)}
-            </label>
-          ))}
+
+        <div className="border-t border-border/80 pt-3">
+          <p className="mb-2 text-[11px] text-muted-foreground">สถานะใบ · เลือกได้หลายค่า</p>
+          <div className="flex flex-wrap gap-x-4 gap-y-2">
+            {PAYOUT_STATUSES.map((s) => (
+              <label key={s} className="flex cursor-pointer items-center gap-2 text-xs text-foreground/90">
+                <Checkbox checked={filters.statuses.includes(s)} onCheckedChange={() => toggle(s)} />
+                {payoutLabel(s)}
+              </label>
+            ))}
+          </div>
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

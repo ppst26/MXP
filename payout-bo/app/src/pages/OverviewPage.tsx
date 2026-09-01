@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { db } from "../mock/seed";
 import {
+  batchPeriodSummary,
   booksOf,
   effectiveSource,
   houseAlerts,
@@ -16,7 +17,7 @@ import {
 import type { PayoutStatus } from "../mock/types";
 import { prevRange } from "../lib/bangkok";
 import { useFilters } from "../state/FilterProvider";
-import { useScopedMerchantId, useViewer } from "../state/ViewerProvider";
+import { useScopedMerchantId, useViewer } from "../state/use-viewer";
 import { DateMerchantFilter } from "../layout/DateMerchantFilter";
 import { HouseBanners } from "../features/overview/HouseBanners";
 import { OverviewZone1 } from "../features/overview/OverviewZone1";
@@ -79,9 +80,11 @@ export function OverviewPage() {
     <>
       <div>
         <h1 className="font-heading text-xl tracking-tight">ภาพรวมโอนออก</h1>
-        <p className="text-sm text-muted-foreground">
-          /payouts/overview · {isAdmin ? "แพลตฟอร์มแอดมิน" : `${shop?.name ?? "ร้าน"} · DIRECT · ไม่เห็นบัญชีต้นทางและต้นทุนบ้าน`}
-        </p>
+        {isAdmin ? null : (
+          <p className="text-sm text-muted-foreground">
+            {shop?.name ?? "ร้าน"} · DIRECT · ไม่เห็นบัญชีต้นทางและต้นทุนบ้าน
+          </p>
+        )}
       </div>
       <DateMerchantFilter />
       {isAdmin ? (
@@ -154,9 +157,7 @@ export function OverviewPage() {
           <PeriodKpis
             m={m}
             pm={pm}
-            batchCount={bPeriod.length}
-            batchSettled={bPeriod.filter((b) => b.status === "SETTLED").length}
-            batchOpen={bPeriod.filter((b) => b.status !== "SETTLED" && b.status !== "FAILED").length}
+            batches={isAdmin ? batchPeriodSummary(bPeriod) : undefined}
             showHouseCost={isAdmin}
             showBatches={isAdmin}
           />

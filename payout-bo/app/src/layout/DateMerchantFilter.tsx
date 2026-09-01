@@ -2,14 +2,13 @@ import { useMemo, useState, type ReactNode } from "react";
 import { MERCHANTS } from "../mock/seed";
 import { merchById, MOCK_DIRECT_USER } from "../mock/query";
 import { useFilters } from "../state/FilterProvider";
-import { useViewer } from "../state/ViewerProvider";
+import { useViewer } from "../state/use-viewer";
 import type { DatePreset } from "../lib/bangkok";
 import type { Route } from "../mock/types";
 import { DateRangePicker } from "./DateRangePicker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   Select,
@@ -37,6 +36,15 @@ const PRESETS: [DatePreset, string][] = [
   ["d30", "ทั้งเดือน"],
 ];
 
+function FilterField({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <Label className="text-[11px] text-muted-foreground">{label}</Label>
+      {children}
+    </div>
+  );
+}
+
 export function DateMerchantFilter({ extra }: { extra?: ReactNode }) {
   const { isAdmin } = useViewer();
   const { filters, setFilters, setPreset } = useFilters();
@@ -50,123 +58,122 @@ export function DateMerchantFilter({ extra }: { extra?: ReactNode }) {
     : "ทุกร้าน";
   const resellers = useMemo(() => MERCHANTS.filter((m) => m.role === "RESELLER"), []);
 
+  const merchant = isAdmin ? (
+    <FilterField label="ร้าน · เลือกโหนด = ทั้งสาย">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button variant="outline" size="sm" className="w-[220px] justify-between gap-2">
+            <span className="truncate">{label}</span>
+            <span className="shrink-0 text-muted-foreground">▾</span>
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-72 p-0" align="start">
+          <Command>
+            <CommandInput placeholder="ค้นหาชื่อหรือรหัส" />
+            <CommandList>
+              <CommandEmpty>ไม่พบร้าน</CommandEmpty>
+              <CommandGroup>
+                <CommandItem
+                  value="ทุกร้าน"
+                  data-checked={!filters.merchantId}
+                  onSelect={() => {
+                    setFilters({ merchantId: "", listPage: 1 });
+                    setOpen(false);
+                  }}
+                >
+                  ทุกร้าน
+                </CommandItem>
+              </CommandGroup>
+              {resellers.map((r) => {
+                const kids = MERCHANTS.filter((m) => m.parentId === r.id);
+                return (
+                  <CommandGroup key={r.id} heading={r.name}>
+                    <CommandItem
+                      value={`${r.name} ${r.code} ทั้งสาย`}
+                      data-checked={filters.merchantId === r.id}
+                      onSelect={() => {
+                        setFilters({ merchantId: r.id, listPage: 1 });
+                        setOpen(false);
+                      }}
+                    >
+                      {r.name} (ทั้งสาย) · {r.code}
+                    </CommandItem>
+                    {kids.map((k) => (
+                      <CommandItem
+                        key={k.id}
+                        value={`${k.name} ${k.code} ${r.name}`}
+                        data-checked={filters.merchantId === k.id}
+                        onSelect={() => {
+                          setFilters({ merchantId: k.id, listPage: 1 });
+                          setOpen(false);
+                        }}
+                      >
+                        {k.name} · {k.code}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                );
+              })}
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+    </FilterField>
+  ) : (
+    <FilterField label="ร้าน">
+      <Input disabled className="w-[220px]" value={`${locked?.name ?? "Acme"} · ${locked?.code ?? "ACME"}`} />
+    </FilterField>
+  );
+
+  const period = (
+    <>
+      <FilterField label="ช่วง">
+        <ToggleGroup
+          type="single"
+          size="sm"
+          variant="outline"
+          value={filters.preset}
+          onValueChange={(v) => {
+            if (v) setPreset(v as DatePreset);
+          }}
+        >
+          {PRESETS.map(([id, t]) => (
+            <ToggleGroupItem key={id} value={id}>
+              {t}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+      </FilterField>
+      <FilterField label="เส้นทาง">
+        <Select
+          value={filters.route || "all"}
+          onValueChange={(v) => setFilters({ route: (v === "all" ? "" : v) as "" | Route, listPage: 1 })}
+        >
+          <SelectTrigger size="sm" className="w-[112px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectItem value="all">ทั้งหมด</SelectItem>
+              <SelectItem value="SAME_BANK">ในธนาคาร</SelectItem>
+              <SelectItem value="INTERBANK">ข้ามธนาคาร</SelectItem>
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      </FilterField>
+      <FilterField label="จาก–ถึง">
+        <DateRangePicker />
+      </FilterField>
+    </>
+  );
+
   return (
-    <Card size="sm">
-      <CardContent className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div className="flex min-w-0 flex-1 flex-wrap items-end gap-3">
-            <div className="flex flex-col gap-1">
-              <Label>ช่วง</Label>
-              <ToggleGroup
-                type="single"
-                size="sm"
-                variant="outline"
-                value={filters.preset}
-                onValueChange={(v) => {
-                  if (v) setPreset(v as DatePreset);
-                }}
-              >
-                {PRESETS.map(([id, t]) => (
-                  <ToggleGroupItem key={id} value={id}>
-                    {t}
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroup>
-            </div>
-            {isAdmin ? (
-              <div className="flex min-w-56 flex-1 flex-col gap-1">
-                <Label>ร้าน (เลือกโหนด = ทั้งสาย)</Label>
-                <Popover open={open} onOpenChange={setOpen}>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" size="sm" className="w-full justify-between">
-                      <span className="truncate">{label}</span>
-                      <span>▾</span>
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-72 p-0" align="start">
-                    <Command>
-                      <CommandInput placeholder="ค้นหาชื่อหรือรหัส" />
-                      <CommandList>
-                        <CommandEmpty>ไม่พบร้าน</CommandEmpty>
-                        <CommandGroup>
-                          <CommandItem
-                            value="ทุกร้าน"
-                            data-checked={!filters.merchantId}
-                            onSelect={() => {
-                              setFilters({ merchantId: "", listPage: 1 });
-                              setOpen(false);
-                            }}
-                          >
-                            ทุกร้าน
-                          </CommandItem>
-                        </CommandGroup>
-                        {resellers.map((r) => {
-                          const kids = MERCHANTS.filter((m) => m.parentId === r.id);
-                          return (
-                            <CommandGroup key={r.id} heading={r.name}>
-                              <CommandItem
-                                value={`${r.name} ${r.code} ทั้งสาย`}
-                                data-checked={filters.merchantId === r.id}
-                                onSelect={() => {
-                                  setFilters({ merchantId: r.id, listPage: 1 });
-                                  setOpen(false);
-                                }}
-                              >
-                                {r.name} (ทั้งสาย) · {r.code}
-                              </CommandItem>
-                              {kids.map((k) => (
-                                <CommandItem
-                                  key={k.id}
-                                  value={`${k.name} ${k.code} ${r.name}`}
-                                  data-checked={filters.merchantId === k.id}
-                                  onSelect={() => {
-                                    setFilters({ merchantId: k.id, listPage: 1 });
-                                    setOpen(false);
-                                  }}
-                                >
-                                  {k.name} · {k.code}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          );
-                        })}
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-            ) : (
-              <div className="flex min-w-48 flex-col gap-1">
-                <Label>ร้าน</Label>
-                <Input disabled value={`${locked?.name ?? "Acme"} · ${locked?.code ?? "ACME"}`} />
-              </div>
-            )}
-            <div className="flex flex-col gap-1">
-              <Label>เส้นทาง</Label>
-              <Select
-                value={filters.route || "all"}
-                onValueChange={(v) => setFilters({ route: (v === "all" ? "" : v) as "" | Route, listPage: 1 })}
-              >
-                <SelectTrigger size="sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="all">ทั้งหมด</SelectItem>
-                    <SelectItem value="SAME_BANK">ในธนาคาร</SelectItem>
-                    <SelectItem value="INTERBANK">ข้ามธนาคาร</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="flex flex-col gap-1">
-            <Label>จาก–ถึง</Label>
-            <DateRangePicker />
-          </div>
-        </div>
-        {extra}
-      </CardContent>
-    </Card>
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
+        <div className="shrink-0">{merchant}</div>
+        <div className="flex flex-wrap items-end justify-end gap-2 sm:gap-3">{period}</div>
+      </div>
+      {extra}
+    </div>
   );
 }
