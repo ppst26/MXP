@@ -117,11 +117,12 @@ function SourceHeroLeft({
 
   const stale = NOW.getTime() - source.bankBalanceAt.getTime() > BALANCE_MAX_AGE_MS;
   const ageMin = Math.round((NOW.getTime() - source.bankBalanceAt.getTime()) / 60000);
-  const bookMismatch = source.bookBalance !== source.bankBalance;
   const lowBalance = source.bankBalance < source.minBalance;
+  const amountFull = source.dailyAmountCap > 0 && source.dailyAmountUsed >= source.dailyAmountCap;
+  const txnFull = source.dailyTxnCap > 0 && source.dailyTxnUsed >= source.dailyTxnCap;
 
   return (
-    <div className="p-6">
+    <div className="flex h-full min-h-0 flex-col p-6">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <div className="type-section inline-flex items-center gap-2 text-muted-foreground">
           <StatusDot tone={eyebrowTone(source)} pulse={eyebrowTone(source) === "ok"} />
@@ -134,51 +135,61 @@ function SourceHeroLeft({
         </div>
       </div>
 
-      <div className={cn("type-display mt-3", lowBalance && "text-destructive")}>
-        ฿ {money(source.bankBalance)}
-        <span className="ml-1 text-sm font-medium tracking-normal text-muted-foreground">THB</span>
-      </div>
-
-      <div className="mt-1.5 text-xs text-muted-foreground">
-        {source.bankName} · {source.accountNo} · {source.accountName}
-      </div>
-
-      <div className="type-label mt-1 space-y-0.5">
-        <div>
-          {stale ? (
-            <span className="text-warning">เก่า {ageMin} น. ห้ามอ่านว่าพอจ่าย</span>
-          ) : (
-            <span>รีเฟรช {ageMin} นาทีที่แล้ว</span>
-          )}
-          {" · "}
-          สมุด {money(source.bookBalance)}
-          {bookMismatch ? <span className="text-warning"> · ยอดสมุดไม่ตรงธนาคาร</span> : null}
-        </div>
-        {source.tier !== "OUTBOUND" ? (
-          <div className="text-warning">
-            tier {source.tier} · เตือน: ไม่ใช่ OUTBOUND
+      <div className="mt-3 flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+        <div className="min-w-0">
+          <div className="text-xs text-muted-foreground">
+            {source.bankName} · {source.accountNo}
           </div>
-        ) : null}
-        {source.status !== "ACTIVE" ? <div className="text-destructive">สถานะบัญชี {source.status}</div> : null}
+          <div className="type-label mt-1 space-y-0.5">
+            <div>
+              {stale ? (
+                <span className="text-warning">เก่า {ageMin} น. ห้ามอ่านว่าพอจ่าย</span>
+              ) : (
+                <span>รีเฟรช {ageMin} นาทีที่แล้ว</span>
+              )}
+            </div>
+            {source.tier !== "OUTBOUND" ? (
+              <div className="text-warning">tier {source.tier} · เตือน: ไม่ใช่ OUTBOUND</div>
+            ) : null}
+            {source.status !== "ACTIVE" ? <div className="text-destructive">สถานะบัญชี {source.status}</div> : null}
+          </div>
+        </div>
+        <div className="ml-auto text-right">
+          <div className={cn("type-hero-balance", lowBalance && "text-destructive")}>
+            ฿ {money(source.bankBalance)}
+            <span className="ml-1 text-sm font-medium tracking-normal text-muted-foreground">THB</span>
+          </div>
+          <div className="mt-1.5 text-xs text-muted-foreground">{source.accountName}</div>
+        </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-2 border-t border-border pt-4">
-        <div>
-          <div className="type-label text-muted-foreground/80">คิวที่กันไว้</div>
-          <div className="type-kpi mt-1">฿ {money(held)}</div>
-          <div className="type-label mt-0.5">
+      <div className="mt-4 grid flex-1 grid-cols-3 divide-x divide-border border-t border-border pt-4 content-start">
+        <div className="flex flex-col gap-1.5 pr-4">
+          <div className="type-stat-label">คิวที่กันไว้</div>
+          <div className="type-stat-value">฿ {money(held)}</div>
+          <div className="type-label leading-snug">
             {openCount} รายการที่ยังไม่จบ · PENDING + PROCESSING
           </div>
         </div>
-        <div className="border-l border-border pl-5">
-          <div className="type-label text-muted-foreground/80">เพดานโอนวันนี้</div>
-          <div className="type-kpi mt-1">
+        <div className="flex flex-col gap-1.5 px-4">
+          <div className="type-stat-label">เพดานโอนวันนี้</div>
+          <div className={cn("type-stat-value", amountFull && "text-destructive")}>
             ฿ {money(source.dailyAmountUsed)}
-            <span className="text-xs font-medium text-muted-foreground"> / ฿ {money(source.dailyAmountCap)}</span>
+            <span className="ml-1 text-sm font-medium tracking-normal text-muted-foreground">
+              / ฿ {money(source.dailyAmountCap)}
+            </span>
           </div>
-          <div className="type-label mt-0.5">
-            {source.dailyTxnUsed} จาก {source.dailyTxnCap} รายการ · สำรอง {money(source.minBalance)}
+          <div className="type-label leading-snug">สำรอง {money(source.minBalance)}</div>
+        </div>
+        <div className="flex flex-col gap-1.5 pl-4">
+          <div className="type-stat-label">เพดานรายการ</div>
+          <div className={cn("type-stat-value", txnFull && "text-destructive")}>
+            {source.dailyTxnUsed}
+            <span className="ml-1 text-sm font-medium tracking-normal text-muted-foreground">
+              / {source.dailyTxnCap}
+            </span>
           </div>
+          <div className="type-label leading-snug">ใบที่ส่งวันนี้</div>
         </div>
       </div>
     </div>
@@ -430,7 +441,7 @@ export function OverviewZone1({
 
   return (
     <Card className="overflow-hidden py-0">
-      <div className="grid lg:grid-cols-[1.17fr_1fr]">
+      <div className="grid items-stretch lg:grid-cols-[1.17fr_1fr]">
         <SourceHeroLeft source={source} held={held} openCount={openCount} />
         <div className="border-t border-border lg:border-t-0 lg:border-l">
           <FollowUpHeroRight

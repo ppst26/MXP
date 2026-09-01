@@ -441,8 +441,8 @@ function MerchantMdrCard({
     <Card size="sm">
       <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
         <div>
-          <CardDescription>ค่าบริการร้าน · MDR</CardDescription>
-          <CardTitle>สัดส่วนค่าธรรมเนียมร้าน</CardTitle>
+          <CardTitle>ค่าบริการร้าน · MDR</CardTitle>
+          <CardDescription>สัดส่วนค่าธรรมเนียมร้าน</CardDescription>
         </div>
         <div className="text-right">
           <div className="type-kpi tabular-nums">{money(totalFee, 4)}</div>
@@ -529,8 +529,8 @@ function MerchantBankFeeCard({
     <Card size="sm">
       <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
         <div>
-          <CardDescription>ค่าโอนธนาคาร · บ้านจ่าย</CardDescription>
-          <CardTitle>สะสมต่อร้านในช่วง</CardTitle>
+          <CardTitle>ค่าโอนธนาคาร · บ้านจ่าย</CardTitle>
+          <CardDescription>สะสมต่อร้านในช่วง</CardDescription>
         </div>
         <div className="text-right">
           <div className="type-kpi tabular-nums">{money(totalQuoted)}</div>
@@ -621,8 +621,8 @@ export function ComparePairs({
       <div className="grid gap-3 lg:grid-cols-3">
         <Card size="sm">
           <CardHeader>
-            <CardDescription>คู่ 2 — ประสิทธิภาพเส้นทาง</CardDescription>
             <CardTitle>ในธนาคาร vs ข้ามธนาคาร</CardTitle>
+            <CardDescription>คู่ 2 — ประสิทธิภาพเส้นทาง</CardDescription>
           </CardHeader>
           <CardContent>
             <RoutePerformanceBars rows={rows} showHouse={showHouse} />
@@ -630,8 +630,8 @@ export function ComparePairs({
         </Card>
         <Card size="sm">
           <CardHeader>
-            <CardDescription>คู่ 3 — ธนาคารที่โอนไป</CardDescription>
-            <CardTitle>{rows.length} ใบในช่วงที่เลือก</CardTitle>
+            <CardTitle>ธนาคารที่โอนไป</CardTitle>
+            <CardDescription>{rows.length} ใบในช่วงที่เลือก</CardDescription>
           </CardHeader>
           <CardContent>
             <DestinationBanks
