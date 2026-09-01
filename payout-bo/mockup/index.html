@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MaxPay BO — HTML mock สำหรับ AI</title>
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+  <div class="ai-note">
+    ชุดนี้เป็น mock HTML ของหน้าโอนออก (P7a) ให้ AI อ่านมาร์กอัปได้โดยไม่ต้องรัน React
+    · ไฟล์โต้ตอบได้ใช้ <code>js/app.js</code> · สูตรเงินจริงอยู่ใน <code>payout-bo/app/</code>
+  </div>
+  <div class="toc">
+    <h1>MaxPay BO mock HTML</h1>
+    <p class="sub">ข้อมูลจำลอง ไม่ใช่โปรดักชัน · เงินบ้าน (ค่าโอน 5 บาท) ห้ามปนกับค่าบริการร้าน · ร้านห้ามเห็นหน้าชุด</p>
+
+    <h2>เปิดคลิกได้ (มีตัวกรอง + สลับบทบาท)</h2>
+    <ul>
+      <li><a href="overview.html">overview.html</a> — ภาพรวม · มุมบนขวาสลับแอดมิน / ร้าน Acme</li>
+      <li><a href="overview.html?role=merchant">overview.html?role=merchant</a> — บังคับมุมร้าน</li>
+      <li><a href="payouts.html">payouts.html</a> — รายการใบถอน</li>
+      <li><a href="payout-detail.html">payout-detail.html</a> — รายละเอียดหนึ่งใบ</li>
+      <li><a href="batches.html">batches.html</a> — ชุดโอน (แอดมิน) · ร้านได้ 404</li>
+      <li><a href="batch-detail.html">batch-detail.html</a> — รายละเอียดหนึ่งชุด</li>
+    </ul>
+
+    <h2>สแนปชอตมาร์กอัปเต็ม (ให้ AI อ่าน DOM โดยไม่รัน JS)</h2>
+    <ul>
+      <li><a href="snapshots/overview-admin.html">snapshots/overview-admin.html</a> — แอดมิน: โซน 1 + แบนเนอร์ชุดค้าง + ค่าโอน + คู่ 4 + ตารางร้าน</li>
+      <li><a href="snapshots/overview-merchant.html">snapshots/overview-merchant.html</a> — ร้าน Acme: สมุด operate / pending_payout ไม่มีโซน 1 ไม่มีค่าโอนบ้าน</li>
+      <li><a href="snapshots/payouts-merchant.html">snapshots/payouts-merchant.html</a> — ตารางใบของร้าน ไม่มีคอลัมน์ค่าโอน</li>
+      <li><a href="snapshots/404-batches.html">snapshots/404-batches.html</a> — ร้านเปิดหน้าชุด</li>
+    </ul>
+
+    <h2>กติกาที่ห้ามผิด</h2>
+    <ul>
+      <li>โซน 2 ไม่ตัดวันที่ · โซน 3 ตัด created_at</li>
+      <li>ใช้ได้ = MERCHANT_OPERATE · กันถอน = MERCHANT_PENDING_PAYOUT (รวม NEEDS_REVIEW) ห้ามคิด operate จากใบในช่วงวันที่</li>
+      <li>ค่าโอนธนาคาร = 5.00 ต่อใบข้ามธนาคาร บ้านจ่าย · ห้ามบวก reserved_fee</li>
+      <li>ไม่มีปุ่มส่ง / ปิดยอด / แก้ 5 บาท</li>
+    </ul>
+  </div>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>รายการใบถอน — ร้าน Acme (สแนปชอต)</title>
+  <link rel="stylesheet" href="../css/app.css" />
+</head>
+<body>
+  <!-- SNAPSHOT: ตารางใบของร้าน · ไม่มีคอลัมน์ค่าโอนธนาคาร · กดชุดแล้วกรอง ?batchId= ไม่เปิดหน้าชุด -->
+  <div class="ai-note">ร้านไม่เห็นคอลัมน์ค่าโอน · ลิงก์ชุดไปรายการใบในสายตัวเอง</div>
+  <div class="topbar">
+    <span>MaxPay BO · mock HTML</span>
+    <div class="viewer">
+      <label class="role">มุมมอง
+        <select disabled><option>แพลตฟอร์มแอดมิน</option><option selected>ร้าน Acme (DIRECT)</option></select>
+      </label>
+    </div>
+  </div>
+  <div class="shell">
+    <aside class="nav">
+      <div class="brand">MaxPay BO</div>
+      <a class="nav-main" href="overview-merchant.html">โอนออก</a>
+      <a class="sub" href="overview-merchant.html">ภาพรวม</a>
+      <a class="sub active" href="payouts-merchant.html">รายการใบถอน</a>
+      <div class="dim">เฟสถัดไป</div>
+      <span class="ghost">รับเงิน</span>
+      <span class="ghost">สมุดบัญชี</span>
+    </aside>
+    <main>
+      <h1>รายการใบถอน</h1>
+      <div class="sub">/payouts · พบ 4 ใบ ตามตัวกรอง · Acme · ใบในสายนี้เท่านั้น</div>
+      <div class="filters">
+        <div class="row">
+          <div class="field"><label>ร้าน</label><input disabled value="Acme · VOBM7qzaRH"></div>
+        </div>
+      </div>
+      <div class="summary">
+        <div>ใบ<b>4</b></div>
+        <div>ยอดโอน<b>5,200.00</b></div>
+        <div>สำเร็จ<b>2 · 1,600.00</b></div>
+        <div>ล้ม<b>0 · 0.00</b></div>
+        <div>ค่าบริการร้าน<b>78.0000</b></div>
+      </div>
+      <section class="zone">
+        <h2>ตารางใบ</h2>
+        <div class="body" style="overflow:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>เวลาสร้าง</th><th>ร้าน</th><th>อ้างอิง</th><th>ออเดอร์ร้าน</th>
+                <th class="num">ยอด</th><th class="num">ค่าบริการ</th><th>สถานะ</th><th>เส้นทาง</th>
+                <th>ผู้รับ</th><th>ชื่อที่ธนาคารตอบ</th><th>ชุด</th><th>สาเหตุ</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="clickable">
+                <td>2026-08-31 17:42:00</td>
+                <td>Acme · VOBM7qzaRH</td>
+                <td><a class="ref">PO-20260831-1042</a></td>
+                <td>ord-acme-01</td>
+                <td class="num">3500.0000</td>
+                <td class="num">52.5000</td>
+                <td><span class="pill muted">รอส่ง</span></td>
+                <td><span class="pill info">ข้ามธนาคาร</span></td>
+                <td>SCB 014 · 1234567890 · สมชาย ใจดี</td>
+                <td>สมชาย ใจดี</td>
+                <td>ยังไม่เข้าชุด</td>
+                <td>—</td>
+              </tr>
+              <tr class="clickable">
+                <td>2026-08-31 16:10:00</td>
+                <td>Acme · VOBM7qzaRH</td>
+                <td><a class="ref">PO-20260831-1018</a></td>
+                <td>ord-acme-02</td>
+                <td class="num">50.0000</td>
+                <td class="num">0.7500</td>
+                <td><span class="pill review">รอตรวจสอบ</span></td>
+                <td><span class="pill muted">ในธนาคาร</span></td>
+                <td>KTB 006 · 9988776655 · นิด รวย</td>
+                <td class="mismatch">นิดา รวย</td>
+                <td><a class="ref" href="payouts-merchant.html">20260831-send</a></td>
+                <td>—</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

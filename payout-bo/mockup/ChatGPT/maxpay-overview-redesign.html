@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MaxPay — Payout overview</title>
+  <style>
+    :root {
+      --bg:#09090b; --surface:#111113; --surface-2:#17171a; --surface-3:#1f1f23;
+      --line:#29292e; --line-strong:#3f3f46; --text:#fafafa; --muted:#a1a1aa;
+      --subtle:#71717a; --green:#43d19e; --amber:#f6bf54; --red:#fb7185; --blue:#93c5fd;
+    }
+    * { box-sizing:border-box; }
+    body { margin:0; min-width:1080px; background:var(--bg); color:var(--text); font:13px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, "Noto Sans Thai", sans-serif; }
+    button, input { font:inherit; }
+    .app { display:grid; grid-template-columns:236px minmax(0,1fr); min-height:100vh; }
+    aside { position:sticky; top:0; height:100vh; padding:20px 12px; border-right:1px solid var(--line); background:#0c0c0e; }
+    .brand { display:flex; align-items:center; gap:10px; padding:6px 10px 26px; font-weight:650; letter-spacing:-.02em; }
+    .mark { display:grid; place-items:center; width:25px; height:25px; border-radius:7px; background:#f4f4f5; color:#111113; font-size:12px; font-weight:800; }
+    .workspace { margin:0 8px 18px; padding:8px 9px; display:flex; align-items:center; justify-content:space-between; border:1px solid var(--line); border-radius:8px; color:#d4d4d8; font-size:12px; }
+    .workspace span:last-child { color:var(--subtle); }
+    .nav-label { padding:0 10px 7px; color:var(--subtle); font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; }
+    nav { display:grid; gap:3px; }
+    .nav-item { display:flex; gap:10px; align-items:center; min-height:36px; padding:0 10px; border-radius:7px; color:var(--muted); text-decoration:none; }
+    .nav-item svg { width:16px; height:16px; stroke-width:1.8; }
+    .nav-item.active { background:#f4f4f5; color:#18181b; font-weight:620; }
+    .nav-item:not(.active):hover { background:var(--surface-2); color:var(--text); }
+    .nav-spacer { height:24px; }
+    .sidebar-bottom { position:absolute; bottom:20px; left:12px; right:12px; padding:12px 10px; border-top:1px solid var(--line); color:var(--muted); font-size:11px; }
+    .user { display:flex; align-items:center; gap:8px; margin-top:9px; color:#e4e4e7; }
+    .avatar { width:25px; height:25px; display:grid; place-items:center; border-radius:50%; background:#27272a; font-size:10px; }
+    main { min-width:0; }
+    .topbar { height:64px; padding:0 32px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--line); }
+    .breadcrumb { color:var(--subtle); font-size:12px; }
+    .breadcrumb b { color:#e4e4e7; font-weight:500; }
+    .top-actions { display:flex; gap:9px; align-items:center; }
+    .env { display:flex; gap:6px; align-items:center; color:var(--muted); font-size:12px; }
+    .dot { width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 0 3px rgba(67,209,158,.12); }
+    .icon-button, .button { height:32px; display:inline-flex; align-items:center; gap:7px; padding:0 10px; border:1px solid var(--line-strong); border-radius:7px; background:transparent; color:#e4e4e7; cursor:pointer; }
+    .icon-button svg, .button svg { width:14px; height:14px; }
+    .content { max-width:1480px; margin:auto; padding:30px 32px 52px; }
+    .heading { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:22px; }
+    h1 { margin:0; font-size:25px; line-height:1.18; letter-spacing:-.045em; font-weight:650; }
+    .heading p { margin:6px 0 0; color:var(--muted); }
+    .heading-meta { color:var(--muted); font-size:12px; }
+    .filter-row { display:flex; align-items:center; gap:8px; padding:9px; margin-bottom:18px; border:1px solid var(--line); border-radius:9px; background:var(--surface); }
+    .range { display:flex; gap:2px; padding:2px; border-radius:7px; background:var(--bg); }
+    .range button { height:28px; padding:0 10px; border:0; border-radius:5px; background:transparent; color:var(--muted); cursor:pointer; }
+    .range button.selected { background:var(--surface-3); color:var(--text); }
+    .filter-separator { width:1px; height:23px; margin:0 3px; background:var(--line); }
+    .select-control { display:flex; gap:8px; align-items:center; min-width:205px; color:#d4d4d8; font-size:12px; }
+    .select-control svg { width:14px; color:var(--subtle); }
+    .filter-row .button { margin-left:auto; }
+    .hero { display:grid; grid-template-columns:minmax(400px,1.17fr) minmax(440px,1fr); overflow:hidden; border:1px solid var(--line); border-radius:10px; background:var(--surface); }
+    .hero-left { padding:23px 24px 22px; }
+    .eyebrow { display:flex; align-items:center; gap:7px; color:var(--muted); font-size:11px; font-weight:600; }
+    .eyebrow .dot { width:6px; height:6px; }
+    .balance { margin:12px 0 5px; font-size:37px; line-height:1; letter-spacing:-.055em; font-weight:620; font-variant-numeric:tabular-nums; }
+    .unit { margin-left:4px; color:var(--muted); font-size:14px; letter-spacing:0; font-weight:500; }
+    .balance-desc { color:var(--muted); font-size:12px; }
+    .hero-stats { display:grid; grid-template-columns:1fr 1fr; gap:0; margin-top:25px; border-top:1px solid var(--line); }
+    .hero-stat { padding:13px 0 0; }
+    .hero-stat + .hero-stat { padding-left:21px; border-left:1px solid var(--line); }
+    .stat-label { color:var(--subtle); font-size:11px; }
+    .stat-value { margin-top:3px; font-size:16px; font-weight:600; font-variant-numeric:tabular-nums; }
+    .stat-detail { color:var(--muted); font-size:11px; }
+    .hero-right { padding:18px; border-left:1px solid var(--line); background:linear-gradient(135deg, #151518 0%, #101011 100%); }
+    .focus-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; }
+    .focus-head h2 { margin:0; font-size:13px; font-weight:600; }
+    .status { display:inline-flex; gap:5px; align-items:center; padding:3px 7px; border-radius:999px; background:rgba(67,209,158,.11); color:var(--green); font-size:10px; font-weight:650; }
+    .focus-list { display:grid; gap:8px; }
+    .focus-row { display:grid; grid-template-columns:auto 1fr auto; gap:9px; align-items:center; padding:10px; border:1px solid var(--line); border-radius:8px; background:rgba(255,255,255,.018); }
+    .focus-icon { width:27px; height:27px; display:grid; place-items:center; border-radius:6px; background:#27272a; color:#e4e4e7; }
+    .focus-icon svg { width:14px; }
+    .focus-row.alert .focus-icon { color:var(--amber); background:rgba(246,191,84,.1); }
+    .focus-row.review .focus-icon { color:var(--red); background:rgba(251,113,133,.11); }
+    .focus-title { font-size:12px; color:#e4e4e7; }
+    .focus-sub { color:var(--subtle); font-size:11px; }
+    .focus-num { color:#fafafa; font-weight:620; font-variant-numeric:tabular-nums; }
+    .section { margin-top:29px; }
+    .section-head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:11px; }
+    .section-head h2 { margin:0; font-size:14px; font-weight:600; letter-spacing:-.01em; }
+    .section-head span { color:var(--subtle); font-size:11px; }
+    .metrics { display:grid; grid-template-columns:repeat(4,1fr); border:1px solid var(--line); border-radius:9px; overflow:hidden; background:var(--surface); }
+    .metric { min-width:0; padding:17px 18px; border-right:1px solid var(--line); }
+    .metric:last-child { border-right:0; }
+    .metric-label { color:var(--muted); font-size:11px; }
+    .metric-value { margin:5px 0 4px; font-size:23px; font-weight:620; line-height:1.05; letter-spacing:-.045em; font-variant-numeric:tabular-nums; white-space:nowrap; }
+    .metric-value small { color:var(--muted); font-size:11px; letter-spacing:0; font-weight:500; }
+    .metric-meta { color:var(--subtle); font-size:11px; }
+    .positive { color:var(--green); }
+    .negative { color:var(--red); }
+    .analytics { display:grid; grid-template-columns:1.38fr 1fr; gap:14px; }
+    .panel { min-width:0; border:1px solid var(--line); border-radius:9px; background:var(--surface); }
+    .panel-head { display:flex; align-items:center; justify-content:space-between; padding:15px 17px 12px; }
+    .panel-title { font-size:13px; font-weight:600; }
+    .panel-note { color:var(--subtle); font-size:11px; }
+    .chart-wrap { padding:0 15px 14px; }
+    .chart-legend { display:flex; gap:15px; margin-top:5px; color:var(--muted); font-size:11px; }
+    .legend-line { display:inline-block; width:14px; height:2px; margin:0 5px 3px 0; vertical-align:middle; background:#f4f4f5; }
+    .legend-line.gray { background:#52525b; }
+    .route-list { padding:0 17px 16px; }
+    .route-row { display:grid; grid-template-columns:1fr 62px 75px; gap:10px; align-items:center; padding:12px 0; border-top:1px solid var(--line); }
+    .route-name { display:flex; align-items:center; gap:8px; }
+    .route-mark { width:8px; height:8px; border-radius:50%; background:#f4f4f5; }
+    .route-mark.gray { background:#52525b; }
+    .route-detail { color:var(--subtle); font-size:11px; }
+    .route-number { text-align:right; font-variant-numeric:tabular-nums; }
+    .route-number small { display:block; color:var(--subtle); font-size:10px; }
+    .rate-summary { padding:0 17px 16px; }
+    .rate-number { margin:3px 0 11px; font-size:30px; font-weight:620; letter-spacing:-.055em; font-variant-numeric:tabular-nums; }
+    .rate-number span { color:var(--muted); font-size:12px; font-weight:500; letter-spacing:0; }
+    .rate-delta { color:var(--green); font-size:11px; }
+    .rate-chart { padding:0 17px; }
+    .rate-caption { display:flex; justify-content:space-between; padding-top:2px; color:var(--subtle); font-size:10px; }
+    .operations-grid { display:grid; grid-template-columns:1fr 1.1fr .95fr; gap:14px; }
+    .age-list, .flow-list, .route-bars { padding:0 17px 16px; }
+    .age-row { display:grid; grid-template-columns:50px 1fr 28px; align-items:center; gap:9px; margin:11px 0; color:var(--muted); font-size:11px; }
+    .meter { height:6px; overflow:hidden; border-radius:999px; background:var(--surface-3); }
+    .meter i { display:block; height:100%; border-radius:inherit; background:var(--primary); }
+    .meter i.warn { background:var(--amber); } .meter i.alert { background:var(--red); }
+    .age-count { text-align:right; color:#e4e4e7; font-variant-numeric:tabular-nums; }
+    .status-stack { display:flex; height:12px; overflow:hidden; border-radius:4px; background:var(--surface-3); }
+    .status-stack i { height:100%; } .status-stack .complete { width:96%; background:var(--green); } .status-stack .processing { width:.5%; background:var(--primary); } .status-stack .pending { width:.7%; background:var(--amber); } .status-stack .review { width:.4%; background:#d087e8; } .status-stack .failed { width:1.3%; background:var(--red); } .status-stack .rejected { width:1.1%; background:#5f6368; }
+    .flow-row { display:grid; grid-template-columns:1fr auto; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid var(--line); font-size:11px; }
+    .flow-row:last-child { border-bottom:0; } .flow-label { display:flex; align-items:center; gap:7px; color:var(--muted); } .flow-dot { width:6px; height:6px; border-radius:50%; background:var(--green); } .flow-dot.processing { background:var(--primary); } .flow-dot.pending { background:var(--amber); } .flow-dot.review { background:#d087e8; } .flow-dot.failed { background:var(--red); } .flow-dot.rejected { background:#5f6368; }
+    .flow-value { color:#e4e4e7; font-variant-numeric:tabular-nums; }
+    .route-bar-row { display:grid; grid-template-columns:1fr 52px; gap:8px; align-items:center; padding:8px 0; border-bottom:1px solid var(--line); }
+    .route-bar-row:last-child { border-bottom:0; } .route-bar-label { color:#e4e4e7; font-size:11px; } .route-bar-label small { display:block; color:var(--subtle); font-size:10px; } .route-bar { height:5px; margin-top:6px; overflow:hidden; border-radius:999px; background:var(--surface-3); } .route-bar i { display:block; height:100%; border-radius:inherit; background:var(--primary); } .route-score { color:#e4e4e7; font-size:11px; text-align:right; font-variant-numeric:tabular-nums; }
+    .risk-meter { display:flex; justify-content:flex-end; align-items:center; gap:7px; color:var(--subtle); font-size:10px; } .risk-meter i { display:block; width:52px; height:4px; overflow:hidden; border-radius:999px; background:var(--surface-3); } .risk-meter i b { display:block; height:100%; border-radius:inherit; background:var(--green); } .risk-meter.warn i b { background:var(--amber); } .risk-meter.alert i b { background:var(--red); }
+    svg [stroke="#f4f4f5"] { stroke:var(--primary); }
+    svg stop[stop-color="#f4f4f5"] { stop-color:var(--primary); }
+    .table-panel { overflow:hidden; }
+    .table-tools { display:flex; align-items:center; gap:9px; padding:13px 16px; border-bottom:1px solid var(--line); }
+    .table-tools .panel-title { margin-right:auto; }
+    .search { width:190px; height:29px; padding:0 9px; border:1px solid var(--line-strong); border-radius:6px; outline:none; background:transparent; color:var(--text); font-size:11px; }
+    table { width:100%; border-collapse:collapse; font-size:12px; }
+    th { padding:8px 16px; border-bottom:1px solid var(--line); color:var(--subtle); font-size:10px; text-align:left; font-weight:650; letter-spacing:.045em; text-transform:uppercase; }
+    td { padding:12px 16px; border-bottom:1px solid var(--line); color:#d4d4d8; }
+    tr:last-child td { border-bottom:0; }
+    tbody tr:hover { background:#17171a; }
+    .align-right { text-align:right; }
+    .merchant { color:#fafafa; font-weight:520; }
+    .merchant-code { display:block; margin-top:1px; color:var(--subtle); font-size:10px; }
+    .risk { display:inline-flex; align-items:center; gap:5px; color:var(--muted); font-size:11px; }
+    .risk-dot { width:5px; height:5px; border-radius:50%; background:var(--green); }
+    .risk-dot.amber { background:var(--amber); } .risk-dot.red { background:var(--red); }
+    .text-amber { color:var(--amber); } .text-red { color:var(--red); } .text-green { color:var(--green); }
+    @media (max-width:1200px) { .metrics { grid-template-columns:repeat(2,1fr); } .metric:nth-child(2) { border-right:0; } .metric:nth-child(-n+2) { border-bottom:1px solid var(--line); } .operations-grid { grid-template-columns:1fr 1fr; } .operations-grid .panel:last-child { grid-column:1/-1; } }
+  </style>
+  <link rel="stylesheet" href="linear-maxpay.css" />
+</head>
+<body>
+  <div class="app">
+    <aside>
+      <div class="brand"><div class="mark">M</div> MaxPay</div>
+      <div class="workspace">MaxPay Thailand <span>⌄</span></div>
+      <div class="nav-label">Operations</div>
+      <nav>
+        <a class="nav-item active" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 13h6V4H4v9Zm0 7h6v-3H4v3Zm10 0h6v-9h-6v9Zm0-16v3h6V4h-6Z"/></svg>ภาพรวม</a>
+        <a class="nav-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M5 3v18M19 3v18M5 7h14M5 17h14"/></svg>รายการโอนออก</a>
+        <a class="nav-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg>ชุดโอน</a>
+      </nav>
+      <div class="nav-spacer"></div>
+      <div class="nav-label">Configuration</div>
+      <nav>
+        <a class="nav-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06-2 2-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V20h-2.8v-.09A1.7 1.7 0 0 0 11 18.35a1.7 1.7 0 0 0-1.87.34l-.06.06-2-2 .06-.06A1.7 1.7 0 0 0 7.47 15a1.7 1.7 0 0 0-1.56-1.03H5.8v-2.8h.1a1.7 1.7 0 0 0 1.57-1.03A1.7 1.7 0 0 0 7.13 8.3l-.06-.06 2-2 .06.06A1.7 1.7 0 0 0 11 6.64a1.7 1.7 0 0 0 1.03-1.56V5h2.8v.09a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06 2 2-.06.06a1.7 1.7 0 0 0-.34 1.87 1.7 1.7 0 0 0 1.56 1.03h.1v2.8h-.1A1.7 1.7 0 0 0 19.4 15Z"/></svg>บัญชีต้นทาง</a>
+        <a class="nav-item" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 11 12 4l9 7"/><path d="M5 10v9h14v-9M9 19v-5h6v5"/></svg>ร้านค้า</a>
+      </nav>
+      <div class="sidebar-bottom">ระบบการโอนออก
+        <div class="user"><div class="avatar">PT</div><span>Admin operator</span></div>
+      </div>
+    </aside>
+    <main>
+      <header class="topbar">
+        <div class="breadcrumb"><b>การชำระเงิน</b> <span> / </span> โอนออก</div>
+        <div class="top-actions"><span class="env"><i class="dot"></i>ระบบปกติ</span><button class="icon-button" aria-label="การแจ้งเตือน"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg></button></div>
+      </header>
+      <div class="content">
+        <div class="heading">
+          <div><h1>ภาพรวมการโอนออก</h1><p>ติดตามสภาพคล่อง คิวงาน และประสิทธิภาพการโอนของทุกร้านค้า</p></div>
+          <div class="heading-meta">อัปเดตล่าสุด 2 นาทีที่แล้ว · 31 ส.ค. 2569, 02:18</div>
+        </div>
+        <section class="filter-row" aria-label="ตัวกรองรายงาน">
+          <div class="range"><button class="selected">วันนี้</button><button>7 วัน</button><button>30 วัน</button><button>กำหนดเอง</button></div>
+          <div class="filter-separator"></div>
+          <div class="select-control"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18h18M7 16v-5M12 16V8M17 16v-9"/></svg>ทุกร้านค้า <span style="margin-left:auto">⌄</span></div>
+          <div class="filter-separator"></div>
+          <div class="select-control">ทุกเส้นทาง <span style="margin-left:auto">⌄</span></div>
+          <button class="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 4v5h.6m14.8 2A7.5 7.5 0 0 0 5.8 8.5L4.6 9M20 20v-5h-.6M4.6 13A7.5 7.5 0 0 0 18.2 15.5l1.2-.5"/></svg>รีเฟรช</button>
+        </section>
+
+        <section class="hero">
+          <div class="hero-left">
+            <div class="eyebrow"><i class="dot"></i> บัญชีต้นทางพร้อมโอน</div>
+            <div class="balance">฿ 2,847,200 <span class="unit">THB</span></div>
+            <div class="balance-desc">KBank · 123-4-56789-0 · MAXPAY COMPANY LIMITED</div>
+            <div class="hero-stats">
+              <div class="hero-stat"><div class="stat-label">คิวที่กันไว้</div><div class="stat-value">฿ 145,820</div><div class="stat-detail">19 รายการที่ยังไม่จบ</div></div>
+              <div class="hero-stat"><div class="stat-label">เพดานโอนวันนี้</div><div class="stat-value">฿ 268,540 <span style="font-size:12px;color:var(--muted);font-weight:500">/ ฿ 500,000</span></div><div class="stat-detail">107 จาก 200 รายการ</div></div>
+            </div>
+          </div>
+          <div class="hero-right">
+            <div class="focus-head"><h2>ต้องติดตามตอนนี้</h2><span class="status"><i class="dot"></i> Live queue</span></div>
+            <div class="focus-list">
+              <div class="focus-row"><div class="focus-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12h14"/></svg></div><div><div class="focus-title">รอส่งเข้าธนาคาร</div><div class="focus-sub">เก่าสุด 12 นาที · ยอดรวม ฿ 56,340</div></div><div class="focus-num">8</div></div>
+              <div class="focus-row alert"><div class="focus-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 9v4m0 4h.01M10.4 3.6 2.8 17.1A2 2 0 0 0 4.5 20h15a2 2 0 0 0 1.7-2.9L13.6 3.6a1.85 1.85 0 0 0-3.2 0Z"/></svg></div><div><div class="focus-title">กำลังส่ง รอยืนยันจากธนาคาร</div><div class="focus-sub">มีเลขออเดอร์แล้ว — ห้ามส่งซ้ำ</div></div><div class="focus-num">6</div></div>
+              <div class="focus-row review"><div class="focus-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 8v4l2.5 2.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></div><div><div class="focus-title">รายการต้องตรวจสอบ</div><div class="focus-sub">ชื่อผู้รับไม่ตรงหรือสถานะตอบกลับผิดปกติ</div></div><div class="focus-num">5</div></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section"><div class="section-head"><h2>ผลการโอนในช่วงที่เลือก</h2><span>เทียบกับช่วงก่อนหน้า</span></div>
+          <div class="metrics">
+            <div class="metric"><div class="metric-label">ยอดโอนทั้งหมด</div><div class="metric-value">฿ 1.84M</div><div class="metric-meta"><span class="positive">↑ 12.4%</span> จากช่วงก่อน</div></div>
+            <div class="metric"><div class="metric-label">รายการโอน</div><div class="metric-value">1,248 <small>รายการ</small></div><div class="metric-meta"><span class="positive">↑ 8.1%</span> จากช่วงก่อน</div></div>
+            <div class="metric"><div class="metric-label">สำเร็จ</div><div class="metric-value">98.7 <small>%</small></div><div class="metric-meta">1,198 รายการ · ฿ 1.79M</div></div>
+            <div class="metric"><div class="metric-label">ล้มเหลว / ไม่รับทำ</div><div class="metric-value">16 <small>รายการ</small></div><div class="metric-meta"><span class="negative">↑ 3 รายการ</span> · ยอด ฿ 21,450</div></div>
+          </div>
+        </section>
+
+        <section class="section analytics">
+          <div class="panel"><div class="panel-head"><div><div class="panel-title">ยอดโอนสำเร็จ</div><div class="panel-note">ยอดเงินสำเร็จรายชั่วโมง</div></div><div class="panel-note">วันนี้</div></div>
+            <div class="chart-wrap"><svg viewBox="0 0 650 182" width="100%" height="182" preserveAspectRatio="none" aria-label="กราฟยอดโอนสำเร็จ"><defs><linearGradient id="area" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#f4f4f5" stop-opacity=".16"/><stop offset="1" stop-color="#f4f4f5" stop-opacity="0"/></linearGradient></defs><path d="M0 145H650M0 100H650M0 55H650M0 10H650" stroke="#29292e" stroke-width="1"/><path d="M0 151 L45 143 L90 149 L135 123 L180 128 L225 96 L270 104 L315 66 L360 81 L405 47 L450 63 L495 38 L540 54 L585 24 L650 43 L650 170 L0 170Z" fill="url(#area)"/><path d="M0 151 L45 143 L90 149 L135 123 L180 128 L225 96 L270 104 L315 66 L360 81 L405 47 L450 63 L495 38 L540 54 L585 24 L650 43" fill="none" stroke="#f4f4f5" stroke-width="2"/><path d="M0 156 L45 152 L90 146 L135 150 L180 138 L225 133 L270 128 L315 124 L360 115 L405 118 L450 106 L495 111 L540 95 L585 103 L650 89" fill="none" stroke="#52525b" stroke-width="1.5" stroke-dasharray="3 3"/><text x="0" y="181" fill="#71717a" font-size="10">00:00</text><text x="162" y="181" fill="#71717a" font-size="10">06:00</text><text x="325" y="181" fill="#71717a" font-size="10">12:00</text><text x="487" y="181" fill="#71717a" font-size="10">18:00</text><text x="620" y="181" fill="#71717a" font-size="10">24:00</text></svg><div class="chart-legend"><span><i class="legend-line"></i>ช่วงนี้</span><span><i class="legend-line gray"></i>ช่วงก่อน</span></div></div>
+          </div>
+          <div class="panel"><div class="panel-head"><div><div class="panel-title">อัตราสำเร็จ</div><div class="panel-note">การเปลี่ยนแปลงรายชั่วโมง</div></div><div class="rate-delta">↑ 0.8 จุด</div></div><div class="rate-summary"><div class="rate-number">98.7 <span>%</span></div><div class="panel-note">เป้าหมายการดำเนินงาน 98.0%</div></div><div class="rate-chart"><svg viewBox="0 0 330 74" width="100%" height="74" preserveAspectRatio="none" aria-label="กราฟอัตราสำเร็จรายชั่วโมง"><path d="M0 58H330M0 33H330M0 8H330" stroke="#29292e" stroke-width="1"/><path d="M0 43 L28 41 L56 45 L84 38 L112 42 L140 31 L168 34 L196 22 L224 26 L252 17 L280 20 L308 12 L330 15" fill="none" stroke="#5e6ad2" stroke-width="2"/><path d="M0 50 L28 47 L56 49 L84 46 L112 47 L140 43 L168 45 L196 39 L224 42 L252 37 L280 40 L308 33 L330 36" fill="none" stroke="#8a8f98" stroke-width="1.25" stroke-dasharray="3 3"/></svg><div class="rate-caption"><span>00:00</span><span>12:00</span><span>24:00</span></div><div class="chart-legend"><span><i class="legend-line"></i>ช่วงนี้</span><span><i class="legend-line gray"></i>ช่วงก่อน</span></div></div></div>
+        </section>
+
+        <section class="section operations-grid">
+          <div class="panel"><div class="panel-head"><div><div class="panel-title">อายุคิวที่ยังไม่จบ</div><div class="panel-note">รายการรอส่งและกำลังส่ง ณ ตอนนี้</div></div><span class="panel-note">19 ใบ</span></div><div class="age-list"><div class="age-row"><span>&lt; 5 นาที</span><div class="meter"><i style="width:42%"></i></div><span class="age-count">8</span></div><div class="age-row"><span>5–15 นาที</span><div class="meter"><i style="width:58%"></i></div><span class="age-count">11</span></div><div class="age-row"><span>15–30 นาที</span><div class="meter"><i class="warn" style="width:16%"></i></div><span class="age-count">3</span></div><div class="age-row"><span>&gt; 30 นาที</span><div class="meter"><i class="alert" style="width:5%"></i></div><span class="age-count">1</span></div></div></div>
+          <div class="panel"><div class="panel-head"><div><div class="panel-title">สถานะรายการในช่วงนี้</div><div class="panel-note">สัดส่วนของ 1,248 รายการ</div></div><span class="panel-note">วันนี้</span></div><div class="flow-list"><div class="status-stack"><i class="complete"></i><i class="processing"></i><i class="pending"></i><i class="review"></i><i class="failed"></i><i class="rejected"></i></div><div class="flow-row"><span class="flow-label"><i class="flow-dot"></i>สำเร็จ</span><span class="flow-value">1,198 · 96.0%</span></div><div class="flow-row"><span class="flow-label"><i class="flow-dot processing"></i>กำลังส่ง / รอยืนยัน</span><span class="flow-value">6 · 0.5%</span></div><div class="flow-row"><span class="flow-label"><i class="flow-dot pending"></i>รอส่ง</span><span class="flow-value">8 · 0.6%</span></div><div class="flow-row"><span class="flow-label"><i class="flow-dot review"></i>ต้องตรวจสอบ</span><span class="flow-value">5 · 0.4%</span></div><div class="flow-row"><span class="flow-label"><i class="flow-dot failed"></i>ล้มเหลว / ไม่รับทำ</span><span class="flow-value">31 · 2.5%</span></div></div></div>
+          <div class="panel"><div class="panel-head"><div><div class="panel-title">ประสิทธิภาพเส้นทาง</div><div class="panel-note">อัตราสำเร็จและต้นทุนโอน</div></div></div><div class="route-bars"><div class="route-bar-row"><div><div class="route-bar-label">ภายในธนาคาร <small>896 รายการ · ค่าโอน ฿0</small></div><div class="route-bar"><i style="width:99.2%"></i></div></div><div class="route-score">99.2%</div></div><div class="route-bar-row"><div><div class="route-bar-label">ข้ามธนาคาร <small>352 รายการ · ค่าโอน ฿1,760</small></div><div class="route-bar"><i style="width:97.4%"></i></div></div><div class="route-score">97.4%</div></div><div class="route-bar-row"><div><div class="route-bar-label">ส่วนต่างอัตราสำเร็จ <small>ข้ามธนาคารต่ำกว่า 1.8 จุด</small></div><div class="route-bar"><i style="width:18%;background:var(--amber)"></i></div></div><div class="route-score text-amber">1.8pt</div></div></div></div>
+        </section>
+
+        <section class="section panel table-panel"><div class="table-tools"><div><div class="panel-title">ร้านค้าที่ต้องติดตาม</div><div class="panel-note">เรียงตามความเร่งด่วนจากคิวที่กำลังดำเนินการ</div></div><input class="search" placeholder="ค้นหาร้านค้า"/><button class="button">ดูทั้งหมด</button></div>
+          <table><thead><tr><th>ร้านค้า</th><th class="align-right">สำเร็จในช่วงนี้</th><th class="align-right">รอส่ง</th><th class="align-right">ต้องตรวจสอบ</th><th class="align-right">เงินที่กันไว้</th><th class="align-right">ความเสี่ยง</th><th>สถานะ</th></tr></thead><tbody>
+            <tr><td><span class="merchant">WinPay Store</span><span class="merchant-code">WINPAY-TH-01</span></td><td class="align-right">฿ 428,200 <span class="merchant-code">286 รายการ</span></td><td class="align-right">4</td><td class="align-right text-red">3</td><td class="align-right">฿ 48,620</td><td><span class="risk-meter alert"><i><b style="width:82%"></b></i>82</span></td><td><span class="risk"><i class="risk-dot red"></i>ต้องตรวจสอบ</span></td></tr>
+            <tr><td><span class="merchant">Lucky Wallet</span><span class="merchant-code">LUCKY-TH-02</span></td><td class="align-right">฿ 351,900 <span class="merchant-code">221 รายการ</span></td><td class="align-right text-amber">5</td><td class="align-right">1</td><td class="align-right">฿ 31,200</td><td><span class="risk-meter warn"><i><b style="width:55%"></b></i>55</span></td><td><span class="risk"><i class="risk-dot amber"></i>มีคิวค้าง</span></td></tr>
+            <tr><td><span class="merchant">Tiger Gaming</span><span class="merchant-code">TIGER-TH-04</span></td><td class="align-right">฿ 279,500 <span class="merchant-code">172 รายการ</span></td><td class="align-right">0</td><td class="align-right">0</td><td class="align-right">—</td><td><span class="risk-meter"><i><b style="width:8%"></b></i>8</span></td><td><span class="risk"><i class="risk-dot"></i>ปกติ</span></td></tr>
+            <tr><td><span class="merchant">Gold Club</span><span class="merchant-code">GOLD-TH-06</span></td><td class="align-right">฿ 216,450 <span class="merchant-code">139 รายการ</span></td><td class="align-right">2</td><td class="align-right">1</td><td class="align-right">฿ 17,640</td><td><span class="risk-meter warn"><i><b style="width:38%"></b></i>38</span></td><td><span class="risk"><i class="risk-dot amber"></i>มีคิวค้าง</span></td></tr>
+          </tbody></table>
+        </section>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

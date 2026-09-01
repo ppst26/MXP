@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ภาพรวม — แพลตฟอร์มแอดมิน (สแนปชอต)</title>
+  <link rel="stylesheet" href="../css/app.css" />
+</head>
+<body>
+  <!-- SNAPSHOT สำหรับ AI: มาร์กอัปเต็ม ไม่พึ่ง app.js · บทบาท = แพลตฟอร์มแอดมิน -->
+  <div class="ai-note">สแนปชอตแอดมิน · HOUSE_ONLY = โซน 1, แบนเนอร์บ้าน, การ์ดชุด, ค่าโอนธนาคาร, คู่ 4, ตารางร้านที่ต้องดู</div>
+  <div class="topbar">
+    <span>MaxPay BO · mock HTML · ข้อมูลจำลอง</span>
+    <div class="viewer">
+      <div class="demo">
+        <label><input type="checkbox" disabled> send ปิด</label>
+        <label><input type="checkbox" disabled> ยอดเก่า</label>
+        <label><input type="checkbox" disabled> ไม่มีบัญชีต้นทาง</label>
+        <label><input type="checkbox" disabled> ยอดไม่พอคิว</label>
+      </div>
+      <label class="role">มุมมอง
+        <select disabled><option selected>แพลตฟอร์มแอดมิน</option><option>ร้าน Acme (DIRECT)</option></select>
+      </label>
+      <span>ขณะนี้จำลอง 2026-08-31 18:00 น.</span>
+    </div>
+  </div>
+  <div class="shell">
+    <aside class="nav">
+      <div class="brand">MaxPay BO</div>
+      <a class="nav-main" href="../overview.html">โอนออก</a>
+      <a class="sub active" href="overview-admin.html">ภาพรวม</a>
+      <a class="sub" href="../payouts.html">รายการใบถอน</a>
+      <a class="sub" href="../batches.html">ชุดโอน</a>
+      <div class="dim">เฟสถัดไป</div>
+      <span class="ghost">รับเงิน</span>
+      <span class="ghost">สมุดบัญชี</span>
+    </aside>
+    <main>
+      <h1>ภาพรวมโอนออก</h1>
+      <div class="sub">/payouts/overview · แพลตฟอร์มแอดมิน · ทุกร้าน · วันนี้</div>
+      <div class="filters">
+        <div class="row" style="margin-bottom:8px">
+          <button class="preset on">วันนี้</button>
+          <button class="preset">เมื่อวาน</button>
+          <button class="preset">7 วัน</button>
+          <button class="preset">14 วัน</button>
+          <button class="preset">ทั้งเดือน</button>
+        </div>
+        <div class="row">
+          <div class="field"><label>จาก</label><input type="datetime-local" value="2026-08-31T00:00"></div>
+          <div class="field"><label>ถึง</label><input type="datetime-local" value="2026-08-31T18:00"></div>
+          <div class="combo-wrap"><label>ร้าน (เลือกโหนด = ทั้งสาย)</label>
+            <button type="button" class="combo"><span>ทุกร้าน</span><span>▾</span></button>
+          </div>
+          <div class="field"><label>เส้นทาง</label><select><option>ทั้งหมด</option></select></div>
+        </div>
+      </div>
+
+      <!-- HOUSE_ONLY โซน 1 -->
+      <section class="zone">
+        <h2>โซน 1 — สุขภาพบัญชีต้นทาง</h2>
+        <div class="body">
+          <div class="cards health">
+            <div class="card"><div class="k">รับคำสั่ง</div><div class="v"><span class="pill ok">enabled</span></div><div class="s">payout.enabled</div></div>
+            <div class="card"><div class="k">ส่งเงิน</div><div class="v"><span class="pill ok">send เปิด</span></div><div class="s">คิวถูกหยิบได้</div></div>
+            <div class="card"><div class="k">บัญชีจ่าย</div><div class="v">1234567890</div><div class="s">KTB 006 · บจก. แม็กซ์เพย์ จำกัด</div></div>
+            <div class="card"><div class="k">สถานะ / tier</div><div class="v"><span class="pill ok">ACTIVE</span></div><div class="s"><span class="pill warn">INBOUND</span> เตือน: ไม่ใช่ OUTBOUND</div></div>
+            <div class="card"><div class="k">ยอดธนาคาร</div><div class="v">186,400.00</div><div class="s">รีเฟรชล่าสุด · สมุด 186,150.00</div></div>
+            <div class="card"><div class="k">เพดานวันนี้</div><div class="v">14 / 200</div><div class="s">ยอด · สำรอง 50,000.00</div></div>
+          </div>
+        </div>
+      </section>
+
+      <div class="banners">
+        <div class="banner alert">มีชุด SENDING/SENT ค้างเกินเกณฑ์ 2 ชุด</div>
+      </div>
+
+      <section class="zone">
+        <h2>โซน 2 — งานค้างตอนนี้ <span class="live"><span class="live-dot"></span>สแนปชอตคิว ณ ตอนนี้ · ไม่ตามวันที่เลือก · poll 15 วินาที</span></h2>
+        <div class="body">
+          <!-- ทุกร้าน: ไม่โชว์สมุดร้าน (ห้ามบวก operate ข้ามร้าน) · โชว์การ์ดกันไว้แบบผลรวมใบ -->
+          <div class="mini-grid">
+            <div class="mini"><div class="h">รอส่ง</div><div class="n">6</div><div class="l">3,200.00 · เก่าสุด 40 น.</div></div>
+            <div class="mini warn"><div class="h">กำลังส่ง</div><div class="n">3</div><div class="l">ห้ามส่งซ้ำ 3</div></div>
+            <div class="mini alert"><div class="h">รอคนดู</div><div class="n">1</div><div class="l">50.75</div></div>
+            <div class="mini quiet"><div class="h">เงินที่กันไว้</div><div class="n">4,850.00</div><div class="l">PENDING + PROCESSING · ผลรวมใบ ไม่ใช่สมุดร้าน</div></div>
+          </div>
+          <div class="mini-grid three">
+            <div class="mini"><div class="h">ชุดรอส่ง</div><div class="n">1</div><div class="l">4 ใบในชุด</div></div>
+            <div class="mini warn"><div class="h">ชุดระหว่างทาง</div><div class="n">2</div><div class="l">ห้ามส่งซ้ำถ้ามีเลขออเดอร์</div></div>
+            <div class="mini alert"><div class="h">ชุดต้องดู</div><div class="n">2</div><div class="l">รอคนดูหรือค้างเกินเกณฑ์</div></div>
+          </div>
+          <div class="legend">ตัวเลขนี้ไม่เปลี่ยนเมื่อกดวันนี้/7 วัน — เป็นคิวค้างในระบบตอนนี้ ไม่ใช่รายงานตามช่วง</div>
+        </div>
+      </section>
+
+      <section class="zone">
+        <h2>โซน 3 — ยอดช่วงที่เลือก</h2>
+        <div class="body">
+          <div class="cards kpis">
+            <div class="card"><div class="k">จำนวนใบ</div><div class="v">14</div><div class="s"><span class="delta up">+12.0% vs ช่วงก่อน</span></div></div>
+            <div class="card"><div class="k">ยอดโอน</div><div class="v">18,400.00</div><div class="s"><span class="delta up">+8.1% vs ช่วงก่อน</span></div></div>
+            <div class="card"><div class="k">สำเร็จ</div><div class="v">8 · 9,200.00</div></div>
+            <div class="card"><div class="k">ล้ม</div><div class="v">1 · 500.00</div><div class="s">ไม่รับทำ 1</div></div>
+            <div class="card accent">
+              <div class="k">ค่าธรรมเนียมโอนธนาคาร (บ้านจ่าย)</div>
+              <div class="v">25.00</div>
+              <div class="s">5 ใบข้ามธนาคาร × 5.00 · ในธนาคาร 9 ใบ = 0.00</div>
+              <div class="s">ประมาณการคิวที่ยังไม่จบ 15.00 — ไม่รวมตัวเลขหลัก</div>
+            </div>
+            <div class="card"><div class="k">ค่าบริการร้าน</div><div class="v">276.0000</div><div class="s">ห้ามบวกกับการ์ดซ้าย</div></div>
+            <div class="card"><div class="k">ชุดในช่วงนี้</div><div class="v">3</div><div class="s">ปิดยอด 1 · ยังไม่จบ 2</div></div>
+          </div>
+          <div class="cards pair" style="margin-top:12px">
+            <div class="card"><div class="k">คู่ 1 — ยอดสำเร็จช่วงนี้ vs ช่วงก่อน</div><div class="legend">ทึบ = ช่วงนี้ · ฟ้าอ่อน = ช่วงก่อน</div></div>
+            <div class="card"><div class="k">คู่ 2 — ในธนาคาร vs ข้ามธนาคาร</div>
+              <table><thead><tr><th>เส้นทาง</th><th class="num">ใบ</th><th class="num">ยอด</th><th class="num">สำเร็จ</th><th class="num">ค่าโอน</th></tr></thead>
+              <tbody>
+                <tr><td>ในธนาคาร</td><td class="num">9</td><td class="num">8,100.00</td><td class="num">88.9%</td><td class="num">0.00</td></tr>
+                <tr><td>ข้ามธนาคาร</td><td class="num">5</td><td class="num">10,300.00</td><td class="num">80.0%</td><td class="num">25.00</td></tr>
+              </tbody></table>
+            </div>
+            <div class="card"><div class="k">คู่ 3 — กรวยสถานะ + อายุคิวตอนนี้</div></div>
+            <div class="card"><div class="k">คู่ 4 — ยอดบัญชี vs คิว vs เพดานวัน</div>
+              <div class="s">ยอดธนาคาร 186,400.00</div>
+              <div class="s">คิวรอจ่าย 4,800.00</div>
+            </div>
+          </div>
+          <div class="watch">
+            <div class="k" style="margin-bottom:8px">ร้านที่ต้องดู · เจ้าของระบบเท่านั้น · เรียงเตือนก่อนยอด</div>
+            <table>
+              <thead><tr><th>ร้าน</th><th class="num">สำเร็จช่วงนี้</th><th class="num">ล้ม</th><th class="num">รอคนดู</th><th class="num">รอส่ง</th><th class="num">กันไว้</th><th>เก่าสุด</th></tr></thead>
+              <tbody>
+                <tr class="clickable heat"><td>Nova Play · NOVA3xK91a</td><td class="num">2 · 1,200.00</td><td class="num">1</td><td class="num">1</td><td class="num">2</td><td class="num">1,530.00</td><td>42 น.</td></tr>
+                <tr class="clickable"><td>Acme · VOBM7qzaRH</td><td class="num">3 · 4,100.00</td><td class="num">0</td><td class="num">1</td><td class="num">1</td><td class="num">3,552.50</td><td>18 น.</td></tr>
+              </tbody>
+            </table>
+            <div class="legend">คลิกแถวกรองร้านนี้บนภาพรวม · ไม่ใช่จอร้าน · สูงสุด 8 แถว</div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
