@@ -53,6 +53,14 @@ export function NotificationBell() {
     if (item.to.list) {
       setPreset("d30");
       setFilters({
+        q: "",
+        batchQ: "",
+        batchId: "",
+        route: "",
+        recipientAccount: "",
+        nameMismatch: false,
+        recipientBankCode: "",
+        ...(isAdmin ? { merchantId: "" } : {}),
         listPage: 1,
         batchListPage: 1,
         statuses: item.to.list.statuses ?? [],

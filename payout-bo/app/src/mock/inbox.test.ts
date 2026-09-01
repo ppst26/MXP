@@ -183,6 +183,33 @@ describe("listInbox merchant", () => {
     expect(inbox.recent.find((i) => i.id === "topup-acme-1")?.to.path).toBe("/payouts/overview");
     expect(inbox.badgeCount).toBe(inbox.live.length);
   });
+
+  it("keeps 5 newest when 6 recent events exist", () => {
+    const times = [10, 11, 12, 13, 14, 15].map(
+      (h) => new Date(`2026-08-31T${h}:00:00+07:00`),
+    );
+    const inbox = listInbox(
+      makeDb({
+        payouts: times.map((at, i) =>
+          payout({
+            referenceId: `p-${i}`,
+            status: "COMPLETED",
+            confirmedAt: at,
+          }),
+        ),
+      }),
+      { isAdmin: false, merchantId: "m-acme", demo: demoOff },
+      [],
+    );
+    expect(inbox.recent).toHaveLength(5);
+    expect(inbox.recent.map((i) => i.id)).toEqual([
+      "payout-p-5",
+      "payout-p-4",
+      "payout-p-3",
+      "payout-p-2",
+      "payout-p-1",
+    ]);
+  });
 });
 
 describe("listInbox admin recent", () => {
