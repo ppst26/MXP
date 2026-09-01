@@ -19,7 +19,7 @@ import {
 function Field({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
   return (
     <div className={className ?? "flex flex-col gap-1"}>
-      <Label className="text-[11px] text-muted-foreground">{label}</Label>
+      <Label className="type-label">{label}</Label>
       {children}
     </div>
   );
@@ -43,6 +43,18 @@ export function PayoutFilterBar() {
             <Field label="ชุด">
               <Button type="button" variant="outline" size="sm" onClick={() => setFilters({ batchId: "", listPage: 1 })}>
                 {filters.batchId} · ล้าง
+              </Button>
+            </Field>
+          ) : null}
+          {filters.recipientBankCode ? (
+            <Field label="ธนาคารผู้รับ">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setFilters({ recipientBankCode: "", listPage: 1 })}
+              >
+                {filters.recipientBankCode} · ล้าง
               </Button>
             </Field>
           ) : null}
@@ -80,11 +92,11 @@ export function PayoutFilterBar() {
         </div>
 
         <div className="border-t border-border/80 pt-3">
-          <p className="mb-2 text-[11px] text-muted-foreground">สถานะใบ · เลือกได้หลายค่า</p>
+          <p className="type-label mb-2">สถานะใบ · เลือกได้หลายค่า</p>
           <div className="flex flex-wrap gap-x-4 gap-y-2">
             {PAYOUT_STATUSES.map((s) => (
               <label key={s} className="flex cursor-pointer items-center gap-2 text-xs text-foreground/90">
-                <Checkbox checked={filters.statuses.includes(s)} onCheckedChange={() => toggle(s)} />
+                <Checkbox className="radio" checked={filters.statuses.includes(s)} onCheckedChange={() => toggle(s)} />
                 {payoutLabel(s)}
               </label>
             ))}

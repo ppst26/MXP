@@ -18,7 +18,7 @@ export function PayoutDetailPage() {
     return (
       <DetailPageShell backTo="/payouts" backLabel="กลับรายการใบถอน">
         <DetailPageHeader>
-          <h1 className="font-heading text-xl tracking-tight">404</h1>
+          <h1 className="page-title">404</h1>
           <p className="text-sm text-muted-foreground">ไม่พบใบ</p>
         </DetailPageHeader>
       </DetailPageShell>
@@ -30,7 +30,7 @@ export function PayoutDetailPage() {
     return (
       <DetailPageShell backTo="/payouts" backLabel="กลับรายการใบถอน">
         <DetailPageHeader>
-          <h1 className="font-heading text-xl tracking-tight">404</h1>
+          <h1 className="page-title">404</h1>
           <p className="text-sm text-muted-foreground">ไม่พบใบในสายร้านนี้</p>
         </DetailPageHeader>
       </DetailPageShell>

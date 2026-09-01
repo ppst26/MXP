@@ -25,6 +25,7 @@ export function PayoutsPage() {
     q: filters.q,
     recipientAccount: filters.recipientAccount,
     nameMismatch: filters.nameMismatch,
+    recipientBankCode: filters.recipientBankCode || undefined,
     batchId: filters.batchId || undefined,
   });
   const m = metrics(rows);
@@ -36,7 +37,7 @@ export function PayoutsPage() {
   return (
     <div className="flex flex-col gap-4">
       <header>
-        <h1 className="font-heading text-xl tracking-tight">รายการใบถอน</h1>
+        <h1 className="page-title">รายการใบถอน</h1>
         <p className="text-sm text-muted-foreground">
           พบ {rows.length} ใบ ตามตัวกรอง ·{" "}
           {isAdmin ? `ทั้งระบบ ${db.payouts.length} ใบ` : `${shop?.name ?? "ร้าน"} · ใบในสายนี้เท่านั้น`}

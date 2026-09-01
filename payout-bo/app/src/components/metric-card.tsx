@@ -1,37 +1,57 @@
-  import type { ReactNode } from "react";
+import type { ReactNode } from "react";
 import { createContext, useContext } from "react";
 import { CircleHelp } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+
+function MetricLabel({ icon, label }: { icon?: ReactNode; label: string }) {
+  return (
+    <span className="type-label inline-flex items-center gap-1.5 leading-snug">
+      {icon ? <span className="shrink-0 text-foreground/55 [&>svg]:size-3.5">{icon}</span> : null}
+      <span>{label}</span>
+    </span>
+  );
+}
 
 export function Zone({
   title,
   extra,
+  toolbar,
   children,
   plain,
+  className,
+  titleClassName,
 }: {
   title: string;
   extra?: ReactNode;
+  toolbar?: ReactNode;
   children: ReactNode;
   plain?: boolean;
+  className?: string;
+  titleClassName?: string;
 }) {
+  const heading = (
+    <>
+      <div className="flex flex-row flex-wrap items-center justify-between gap-3">
+        <h2 className={cn(titleClassName ?? "type-section", "text-foreground")}>{title}</h2>
+        {extra}
+      </div>
+      {toolbar}
+    </>
+  );
   if (plain) {
     return (
-      <section className="flex flex-col gap-3">
-        <div className="flex flex-row flex-wrap items-center justify-between gap-3">
-          <CardDescription>{title}</CardDescription>
-          {extra}
-        </div>
+      <section className={cn("flex flex-col gap-3", className)}>
+        {heading}
         <div className="flex flex-col gap-3">{children}</div>
       </section>
     );
   }
   return (
     <Card>
-      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 border-b">
-        <CardDescription>{title}</CardDescription>
-        {extra}
+      <CardHeader className="flex flex-col gap-3 border-b">
+        {heading}
       </CardHeader>
       <CardContent className="flex flex-col gap-3 pt-4">{children}</CardContent>
     </Card>
@@ -45,6 +65,7 @@ export function MetricCard({
   accent,
   onClick,
   tone,
+  icon,
 }: {
   label: string;
   value: ReactNode;
@@ -52,6 +73,7 @@ export function MetricCard({
   accent?: boolean;
   onClick?: () => void;
   tone?: "warn" | "alert" | "quiet";
+  icon?: ReactNode;
 }) {
   return (
     <Card
@@ -67,8 +89,10 @@ export function MetricCard({
       )}
     >
       <CardHeader>
-        <CardDescription>{label}</CardDescription>
-        <CardTitle className={cn("text-xl tracking-tight", tone === "quiet" && "text-muted-foreground")}>{value}</CardTitle>
+        <CardDescription className="leading-snug">
+          <MetricLabel icon={icon} label={label} />
+        </CardDescription>
+        <p className={cn("type-kpi", tone === "quiet" && "text-muted-foreground")}>{value}</p>
       </CardHeader>
       {hint ? <CardContent className="text-xs text-muted-foreground">{hint}</CardContent> : null}
     </Card>
@@ -96,7 +120,7 @@ export function KpiTooltip({ content }: { content: ReactNode }) {
 
 const SummaryMetricLayoutContext = createContext<"wrap" | "grid">("wrap");
 
-export function SummaryMetricGrid({ children, cols }: { children: ReactNode; cols?: 5 | 6 | 7 }) {
+export function SummaryMetricGrid({ children, cols }: { children: ReactNode; cols?: 4 | 5 | 6 | 7 }) {
   const layout = cols ? "grid" : "wrap";
   return (
     <SummaryMetricLayoutContext.Provider value={layout}>
@@ -104,8 +128,9 @@ export function SummaryMetricGrid({ children, cols }: { children: ReactNode; col
         className={cn(
           "gap-2",
           cols === 7 && "grid grid-cols-7",
-          cols === 6 && "grid grid-cols-6",
+          cols === 6 && "grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6",
           cols === 5 && "grid grid-cols-5",
+          cols === 4 && "grid grid-cols-2 sm:grid-cols-4",
           !cols && "flex flex-wrap",
         )}
       >
@@ -123,6 +148,9 @@ export function SummaryMetricCard({
   tooltip,
   accent,
   className,
+  valueClassName,
+  onClick,
+  icon,
 }: {
   label: string;
   value: ReactNode;
@@ -131,25 +159,31 @@ export function SummaryMetricCard({
   tooltip?: ReactNode;
   accent?: boolean;
   className?: string;
+  valueClassName?: string;
+  onClick?: () => void;
+  icon?: ReactNode;
 }) {
   const layout = useContext(SummaryMetricLayoutContext);
 
   return (
     <Card
       size="sm"
+      role={onClick ? "button" : undefined}
+      onClick={onClick}
       className={cn(
         "relative py-0",
         layout === "grid" ? "min-w-0" : "min-w-[128px] flex-1 basis-[calc(50%-0.25rem)] sm:min-w-[140px] sm:basis-[calc(33.333%-0.34rem)] lg:basis-[calc(16.666%-0.42rem)]",
-        accent && "bg-primary/5 ring-primary/40",
+        accent && "ring-primary/40",
+        onClick && "cursor-pointer transition-colors hover:bg-muted/20",
         className,
       )}
     >
       {tooltip ? <KpiTooltip content={tooltip} /> : null}
       <CardContent className={cn("py-3", tooltip && "pr-7")}>
-        <p className="text-[11px] leading-snug text-muted-foreground">{label}</p>
-        <p className="mt-1 text-lg font-semibold tabular-nums tracking-tight">{value}</p>
-        {hint ? <p className="mt-1 text-[11px] leading-snug text-muted-foreground">{hint}</p> : null}
-        {footer ? <div className="mt-1 text-[11px] leading-snug text-muted-foreground">{footer}</div> : null}
+        <MetricLabel icon={icon} label={label} />
+        <p className={cn("type-kpi mt-1", valueClassName)}>{value}</p>
+        {hint ? <p className="type-label mt-1 leading-snug">{hint}</p> : null}
+        {footer ? <div className="type-label mt-1 leading-snug">{footer}</div> : null}
       </CardContent>
     </Card>
   );

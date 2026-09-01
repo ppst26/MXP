@@ -2,7 +2,8 @@ import { Link } from "react-router-dom";
 import type { Payout } from "../../mock/types";
 import { money4 } from "../../lib/money";
 import { fmtDT } from "../../lib/bangkok";
-import { RoutePill, StatusPill } from "../../lib/StatusPill";
+import { StatusPill } from "../../lib/StatusPill";
+import { BankMark } from "../../lib/BankMark";
 import { Button } from "@/components/ui/button";
 
 export function PayoutTable({
@@ -38,7 +39,6 @@ export function PayoutTable({
           <th className="num">ยอด</th>
           <th className="num">ค่าบริการ</th>
           <th>สถานะ</th>
-          <th>เส้นทาง</th>
           {showBankFee ? <th className="num">ค่าโอน</th> : null}
           <th>ผู้รับ</th>
           <th>ชื่อที่ธนาคารตอบ</th>
@@ -71,12 +71,12 @@ export function PayoutTable({
               <td>
                 <StatusPill status={p.status} />
               </td>
-              <td>
-                <RoutePill route={p.route} />
-              </td>
               {showBankFee ? <td className="num">{fee}</td> : null}
-              <td className="max-w-[220px] truncate" title={`${p.recipientBankName} ${p.recipientBankCode} · ${p.recipientAccountNo} · ${p.recipientName}`}>
-                {p.recipientBankName} {p.recipientBankCode} · {p.recipientAccountNo} · {p.recipientName}
+              <td title={`${p.recipientBankName} ${p.recipientBankCode} · ${p.recipientAccountNo}`}>
+                <span className="inline-flex items-center gap-2">
+                  <BankMark code={p.recipientBankCode} name={p.recipientBankName} />
+                  <span className="font-mono tabular-nums">{p.recipientAccountNo}</span>
+                </span>
               </td>
               <td className={p.nameMismatch ? "bg-warning/15 max-w-[140px] truncate" : "max-w-[140px] truncate"} title={p.accountToName || undefined}>
                 {p.accountToName || "—"}

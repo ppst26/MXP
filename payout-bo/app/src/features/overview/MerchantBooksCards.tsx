@@ -1,6 +1,9 @@
+import { Lock, PauseCircle, ShieldBan, Wallet } from "lucide-react";
 import type { MerchantBooks } from "../../mock/types";
 import { money } from "../../lib/money";
 import { MetricCard } from "@/components/metric-card";
+
+const iconProps = { strokeWidth: 1.8 } as const;
 
 export function MerchantBooksCards({
   books,
@@ -13,12 +16,14 @@ export function MerchantBooksCards({
     <div className="flex flex-col gap-2">
       <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
+          icon={<Wallet {...iconProps} />}
           label="ใช้ได้"
           value={money(books.operate)}
           hint="MERCHANT_OPERATE · สั่งถอนได้จากยอดนี้"
           tone={books.operate <= 0 ? "warn" : undefined}
         />
         <MetricCard
+          icon={<Lock {...iconProps} />}
           label="กันไว้รอถอน"
           value={money(books.pendingPayout)}
           hint="MERCHANT_PENDING_PAYOUT · ใบที่ยังไม่จบรวมรอคนดู"
@@ -26,10 +31,22 @@ export function MerchantBooksCards({
           onClick={onHeld}
         />
         {books.parking > 0 ? (
-          <MetricCard label="พักไว้" value={money(books.parking)} hint="MERCHANT_PARKING · แอดมินย้ายมา ไม่ใช่คิวถอน" tone="quiet" />
+          <MetricCard
+            icon={<PauseCircle {...iconProps} />}
+            label="พักไว้"
+            value={money(books.parking)}
+            hint="MERCHANT_PARKING · แอดมินย้ายมา ไม่ใช่คิวถอน"
+            tone="quiet"
+          />
         ) : null}
         {books.freeze > 0 ? (
-          <MetricCard label="อายัด" value={money(books.freeze)} hint="MERCHANT_FREEZE · ข้อพิพาท ไม่รวมกันถอน" tone="warn" />
+          <MetricCard
+            icon={<ShieldBan {...iconProps} />}
+            label="อายัด"
+            value={money(books.freeze)}
+            hint="MERCHANT_FREEZE · ข้อพิพาท ไม่รวมกันถอน"
+            tone="warn"
+          />
         ) : null}
       </div>
       <p className="text-xs text-muted-foreground">

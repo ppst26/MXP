@@ -12,6 +12,7 @@ export type Filters = {
   q: string;
   recipientAccount: string;
   nameMismatch: boolean;
+  recipientBankCode: string;
   listPage: number;
   batchId: string;
   batchStatus: string;
@@ -31,6 +32,7 @@ const initial: Filters = {
   q: "",
   recipientAccount: "",
   nameMismatch: false,
+  recipientBankCode: "",
   listPage: 1,
   batchId: "",
   batchStatus: "",

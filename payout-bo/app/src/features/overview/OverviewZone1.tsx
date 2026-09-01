@@ -1,12 +1,12 @@
 import { useState, type ReactNode } from "react";
-import { AlertTriangle, Clock, Layers, Plus, Wallet } from "lucide-react";
+import { AlertTriangle, Clock, Layers, List, Plus, Wallet } from "lucide-react";
 import type { Batch, Payout, SourceAccount } from "../../mock/types";
 import { money } from "../../lib/money";
 import { BALANCE_MAX_AGE_MS, sumAmt } from "../../mock/query";
 import { NOW } from "../../lib/bangkok";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { STUCK_BATCH_LABEL, StuckBatchHeading } from "../batches/StuckBatchHeading";
 import { cn } from "@/lib/utils";
 
 type DotTone = "ok" | "warn" | "bad";
@@ -31,7 +31,7 @@ function StatusDot({ tone, pulse }: { tone: DotTone; pulse?: boolean }) {
 
 function StatusItem({ label, tone }: { label: string; tone: DotTone }) {
   return (
-    <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+    <span className="type-label inline-flex items-center gap-1.5">
       {label}
       <StatusDot tone={tone} />
     </span>
@@ -85,7 +85,7 @@ function FocusRow({
       </span>
       <span className="min-w-0">
         <span className={cn("block text-xs text-foreground/90", tone === "quiet" && "text-muted-foreground")}>{title}</span>
-        <span className="block truncate text-[11px] text-muted-foreground">{sub}</span>
+        <span className="type-label block truncate">{sub}</span>
       </span>
       <span className={cn("text-sm font-semibold tabular-nums tracking-tight", tone === "quiet" && "text-muted-foreground")}>{count}</span>
     </button>
@@ -104,7 +104,7 @@ function SourceHeroLeft({
   if (!source) {
     return (
       <div className="flex flex-col gap-3 p-6">
-        <div className="inline-flex items-center gap-2 text-[11px] font-semibold text-muted-foreground">
+        <div className="type-section inline-flex items-center gap-2 text-muted-foreground">
           <StatusDot tone="bad" />
           บัญชีต้นทางพร้อมโอน
         </div>
@@ -123,7 +123,7 @@ function SourceHeroLeft({
   return (
     <div className="p-6">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <div className="inline-flex items-center gap-2 text-[11px] font-semibold text-muted-foreground">
+        <div className="type-section inline-flex items-center gap-2 text-muted-foreground">
           <StatusDot tone={eyebrowTone(source)} pulse={eyebrowTone(source) === "ok"} />
           บัญชีต้นทางพร้อมโอน
         </div>
@@ -134,7 +134,7 @@ function SourceHeroLeft({
         </div>
       </div>
 
-      <div className={cn("mt-3 text-[37px] font-semibold leading-none tracking-[-0.055em] tabular-nums", lowBalance && "text-destructive")}>
+      <div className={cn("type-display mt-3", lowBalance && "text-destructive")}>
         ฿ {money(source.bankBalance)}
         <span className="ml-1 text-sm font-medium tracking-normal text-muted-foreground">THB</span>
       </div>
@@ -143,7 +143,7 @@ function SourceHeroLeft({
         {source.bankName} · {source.accountNo} · {source.accountName}
       </div>
 
-      <div className="mt-1 space-y-0.5 text-[11px] text-muted-foreground">
+      <div className="type-label mt-1 space-y-0.5">
         <div>
           {stale ? (
             <span className="text-warning">เก่า {ageMin} น. ห้ามอ่านว่าพอจ่าย</span>
@@ -164,19 +164,19 @@ function SourceHeroLeft({
 
       <div className="mt-6 grid grid-cols-2 border-t border-border pt-4">
         <div>
-          <div className="text-[11px] text-muted-foreground/80">คิวที่กันไว้</div>
-          <div className="mt-1 text-base font-semibold tabular-nums">฿ {money(held)}</div>
-          <div className="mt-0.5 text-[11px] text-muted-foreground">
+          <div className="type-label text-muted-foreground/80">คิวที่กันไว้</div>
+          <div className="type-kpi mt-1">฿ {money(held)}</div>
+          <div className="type-label mt-0.5">
             {openCount} รายการที่ยังไม่จบ · PENDING + PROCESSING
           </div>
         </div>
         <div className="border-l border-border pl-5">
-          <div className="text-[11px] text-muted-foreground/80">เพดานโอนวันนี้</div>
-          <div className="mt-1 text-base font-semibold tabular-nums">
+          <div className="type-label text-muted-foreground/80">เพดานโอนวันนี้</div>
+          <div className="type-kpi mt-1">
             ฿ {money(source.dailyAmountUsed)}
             <span className="text-xs font-medium text-muted-foreground"> / ฿ {money(source.dailyAmountCap)}</span>
           </div>
-          <div className="mt-0.5 text-[11px] text-muted-foreground">
+          <div className="type-label mt-0.5">
             {source.dailyTxnUsed} จาก {source.dailyTxnCap} รายการ · สำรอง {money(source.minBalance)}
           </div>
         </div>
@@ -186,6 +186,41 @@ function SourceHeroLeft({
 }
 
 type QueueTab = "payouts" | "batches";
+
+function QueueTabButton({
+  active,
+  onClick,
+  icon,
+  label,
+  trailing,
+  ariaLabel,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: ReactNode;
+  label: string;
+  trailing?: ReactNode;
+  ariaLabel: string;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={ariaLabel}
+      aria-pressed={active}
+      onClick={onClick}
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors",
+        active
+          ? "active border-foreground/15 bg-foreground/8 text-foreground shadow-sm"
+          : "border-transparent text-muted-foreground hover:border-foreground/10 hover:bg-foreground/4 hover:text-foreground",
+      )}
+    >
+      {icon}
+      <span>{label}</span>
+      {trailing}
+    </button>
+  );
+}
 
 function PayoutFocusList({
   pending,
@@ -248,6 +283,16 @@ function PayoutFocusList({
   );
 }
 
+function needsLookSub(needsLook: Batch[]): string {
+  if (!needsLook.length) return "ไม่มี";
+  const review = needsLook.filter((b) => b.status === "NEEDS_REVIEW").length;
+  const stuck = needsLook.filter((b) => b.stuck).length;
+  const parts: string[] = [];
+  if (review) parts.push(`รอตรวจ ${review}`);
+  if (stuck) parts.push(`${STUCK_BATCH_LABEL} ${stuck}`);
+  return parts.join(" · ");
+}
+
 function BatchFocusList({
   open,
   inFlight,
@@ -281,7 +326,7 @@ function BatchFocusList({
       />
       <FocusRow
         title="ชุดต้องดู"
-        sub="รอคนดูหรือค้างเกินเกณฑ์"
+        sub={needsLookSub(needsLook)}
         count={needsLook.length}
         tone={needsLook.length ? "alert" : "quiet"}
         icon={<Clock className="size-3.5" strokeWidth={1.8} />}
@@ -313,40 +358,45 @@ function FollowUpHeroRight({
   onGoBatches: (patch: { batchStatus?: string; batchStuck?: boolean }) => void;
 }) {
   const [tab, setTab] = useState<QueueTab>("payouts");
+  const stuckCount = needsLook.filter((b) => b.stuck).length;
+  const followTone: DotTone = stuckCount ? "bad" : needsLook.length ? "warn" : "ok";
 
   return (
     <div className="flex h-full flex-col p-4">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="inline-flex items-center gap-2">
-          <h2 className="text-[13px] font-semibold">ต้องติดตามตอนนี้</h2>
-          <StatusDot tone="ok" pulse />
+          <h2 className="type-section">ต้องติดตามตอนนี้</h2>
+          <StatusDot tone={followTone} pulse={followTone === "ok"} />
         </div>
-        <ToggleGroup
-          type="single"
-          variant="outline"
-          size="sm"
-          spacing={0}
-          value={tab}
-          onValueChange={(v) => {
-            if (v) setTab(v as QueueTab);
-          }}
-        >
-          <ToggleGroupItem value="payouts" aria-label="รายการโอน">
-            รายการโอน
-          </ToggleGroupItem>
-          <ToggleGroupItem value="batches" aria-label="ชุดโอน">
-            ชุดโอน
-          </ToggleGroupItem>
-        </ToggleGroup>
+        <div className="inline-flex items-center gap-1 rounded-lg border border-foreground/10 bg-foreground/2 p-0.5">
+          <QueueTabButton
+            active={tab === "payouts"}
+            onClick={() => setTab("payouts")}
+            ariaLabel="รายการโอน"
+            icon={<List className="size-3.5" strokeWidth={1.8} />}
+            label="รายการโอน"
+          />
+          <QueueTabButton
+            active={tab === "batches"}
+            onClick={() => setTab("batches")}
+            ariaLabel="ชุดโอน"
+            icon={<Layers className="size-3.5" strokeWidth={1.8} />}
+            label="ชุดโอน"
+            trailing={stuckCount ? <StatusDot tone="bad" /> : null}
+          />
+        </div>
       </div>
 
       {tab === "payouts" ? (
-        <PayoutFocusList pending={pending} processing={processing} review={review} held={held} onGoList={onGoList} />
+        <div className="grid gap-2">
+          <PayoutFocusList pending={pending} processing={processing} review={review} held={held} onGoList={onGoList} />
+          <StuckBatchHeading count={stuckCount} onClick={() => onGoBatches({ batchStuck: true })} />
+        </div>
       ) : (
         <BatchFocusList open={open} inFlight={inFlight} needsLook={needsLook} onGoBatches={onGoBatches} />
       )}
 
-      <p className="mt-auto pt-3 text-[11px] text-muted-foreground">
+      <p className="type-label mt-auto pt-3">
         สแนปชอตคิว ณ ตอนนี้ · ไม่ตามวันที่เลือก · poll 15 วินาที
       </p>
     </div>

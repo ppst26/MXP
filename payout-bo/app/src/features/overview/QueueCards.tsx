@@ -1,8 +1,11 @@
+import { Clock, Eye, Send, Wallet } from "lucide-react";
 import type { Payout } from "../../mock/types";
 import { money } from "../../lib/money";
 import { NOW } from "../../lib/bangkok";
 import { sumAmt } from "../../mock/query";
 import { MetricCard } from "@/components/metric-card";
+
+const iconProps = { strokeWidth: 1.8 } as const;
 
 export function QueueCards({
   pending,
@@ -27,6 +30,7 @@ export function QueueCards({
   return (
     <div className={`grid gap-2 ${showHeld ? "sm:grid-cols-2 xl:grid-cols-4" : "sm:grid-cols-3"}`}>
       <MetricCard
+        icon={<Clock {...iconProps} />}
         label="รอส่ง"
         value={pending.length}
         hint={money(sumAmt(pending)) + (oldest ? ` · เก่าสุด ${oldestMin} น.` : "")}
@@ -34,6 +38,7 @@ export function QueueCards({
         onClick={() => onGoList(["PENDING"])}
       />
       <MetricCard
+        icon={<Send {...iconProps} />}
         label="กำลังส่ง"
         value={processing.length}
         hint={(unconf.length ? `ห้ามส่งซ้ำ ${unconf.length}` : "ในชุด/กำลังโอน") + (conf.length ? ` · รอผล ${conf.length}` : "")}
@@ -41,6 +46,7 @@ export function QueueCards({
         onClick={() => onGoList(["PROCESSING"])}
       />
       <MetricCard
+        icon={<Eye {...iconProps} />}
         label="รอคนดู"
         value={review.length}
         hint={review.length ? money(sumAmt(review)) : "ไม่มีใบค้างตรวจ"}
@@ -49,6 +55,7 @@ export function QueueCards({
       />
       {showHeld ? (
         <MetricCard
+          icon={<Wallet {...iconProps} />}
           label="เงินที่กันไว้"
           value={money(held)}
           hint="PENDING + PROCESSING · ผลรวมใบ ไม่ใช่สมุดร้าน"

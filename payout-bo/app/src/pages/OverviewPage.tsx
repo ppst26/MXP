@@ -74,19 +74,18 @@ export function OverviewPage() {
         now: db.now,
       })
     : [];
-  const bannerAlerts = source ? alerts : alerts.filter((a) => a.id !== "no-source");
+  const bannerAlerts = (source ? alerts : alerts.filter((a) => a.id !== "no-source")).filter((a) => a.id !== "stuck");
 
   return (
     <>
       <div>
-        <h1 className="font-heading text-xl tracking-tight">ภาพรวมโอนออก</h1>
+        <h1 className="page-title">ภาพรวมเรียลไทม์</h1>
         {isAdmin ? null : (
           <p className="text-sm text-muted-foreground">
             {shop?.name ?? "ร้าน"} · DIRECT · ไม่เห็นบัญชีต้นทางและต้นทุนบ้าน
           </p>
         )}
       </div>
-      <DateMerchantFilter />
       {isAdmin ? (
         <OverviewZone1
           source={source}
@@ -153,15 +152,38 @@ export function OverviewPage() {
           </p>
         </Zone>
       ) : null}
-      <Zone title="โซน 3 — ยอดช่วงที่เลือก" plain>
+      <Zone
+        title="สรุปตามช่วงเวลา"
+        plain
+        className="border-t border-border pt-4"
+        titleClassName="page-title"
+        toolbar={<DateMerchantFilter />}
+      >
           <PeriodKpis
             m={m}
             pm={pm}
             batches={isAdmin ? batchPeriodSummary(bPeriod) : undefined}
-            showHouseCost={isAdmin}
             showBatches={isAdmin}
           />
-          <ComparePairs rows={rows} queue={q} ts={ts} rateTs={rateTs} m={m} pm={pm} showHouse={isAdmin} />
+          <ComparePairs
+            rows={rows}
+            ts={ts}
+            rateTs={rateTs}
+            m={m}
+            pm={pm}
+            showHouse={isAdmin}
+            grain={filters.to.getTime() - filters.from.getTime() <= 48 * 3600 * 1000 ? "hour" : "day"}
+            onGoPayouts={(patch) => {
+              setFilters({
+                recipientBankCode: "",
+                statuses: [],
+                ...patch,
+                listPage: 1,
+              });
+              nav("/payouts");
+            }}
+            onPickMerchant={(id) => setFilters({ merchantId: id })}
+          />
           {isAdmin ? <MerchantWatch rows={watch} onPick={(id) => setFilters({ merchantId: id })} /> : null}
       </Zone>
     </>

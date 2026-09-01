@@ -30,8 +30,8 @@ function Panel({
       {!headless && title ? (
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 border-b px-4 py-3.5">
           <div className="min-w-0">
-            <CardTitle className="text-[13px] font-semibold">{title}</CardTitle>
-            {note ? <CardDescription className="text-[11px] text-muted-foreground">{note}</CardDescription> : null}
+            <CardTitle className="type-section">{title}</CardTitle>
+            {note ? <CardDescription className="type-label">{note}</CardDescription> : null}
           </div>
           {extra}
         </CardHeader>
@@ -44,8 +44,8 @@ function Panel({
 function InfoLine({ label, children, mono }: { label: string; children: ReactNode; mono?: boolean }) {
   return (
     <div className="py-1.5">
-      <div className="text-[10px] text-muted-foreground">{label}</div>
-      <div className={cn("mt-0.5 text-xs text-foreground/90", mono && "font-mono text-[11px]")}>{children}</div>
+      <div className="type-micro">{label}</div>
+      <div className={cn("mt-0.5 text-xs text-foreground/90", mono && "type-label font-mono")}>{children}</div>
     </div>
   );
 }
@@ -53,8 +53,8 @@ function InfoLine({ label, children, mono }: { label: string; children: ReactNod
 function BatchRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="border-t border-border py-2.5 first:border-t-0 first:pt-0">
-      <div className="text-[10px] text-muted-foreground">{label}</div>
-      <div className="mt-0.5 break-all font-mono text-[10px] text-foreground/85">{value}</div>
+      <div className="type-micro">{label}</div>
+      <div className="type-label mt-0.5 break-all font-mono text-foreground/85">{value}</div>
     </div>
   );
 }
@@ -109,11 +109,11 @@ export function PayoutDetailView({ payout: p, batch: b, isAdmin, onFilterBatch }
           </span>
         }
       >
-        <div className="text-[11px] text-muted-foreground">รายละเอียดใบถอน</div>
-        <div className="mt-0.5 font-mono text-[13px] text-foreground/85">
+        <div className="type-label">รายละเอียดใบถอน</div>
+        <div className="type-section mt-0.5 font-mono font-normal text-foreground/85">
           {p.referenceId} · {p.transactionId}
         </div>
-        <div className="mt-2.5 text-[31px] leading-none font-semibold tracking-tight tabular-nums">฿ {money(p.amount)}</div>
+        <div className="type-display mt-2.5">฿ {money(p.amount)}</div>
         <div className="mt-2 text-sm text-muted-foreground">
           {p.merchantName} · {p.merchantCode} · สร้าง {fmtDTThai(p.createdAt)}
         </div>
@@ -124,14 +124,14 @@ export function PayoutDetailView({ payout: p, batch: b, isAdmin, onFilterBatch }
           <Panel headless title="ผู้รับ">
             <div className="px-5 pt-5">
               <div className="flex items-center gap-3 border-b border-border pb-5">
-                <div className="grid size-10 place-items-center rounded-lg bg-muted text-[11px] font-bold text-foreground">
+                <div className="type-label grid size-10 place-items-center rounded-lg bg-muted font-bold text-foreground">
                   {p.recipientBankCode.slice(0, 3)}
                 </div>
                 <div className="min-w-0">
-                  <div className="text-[15px] font-semibold">{p.recipientName}</div>
+                  <div className="type-section">{p.recipientName}</div>
                   <div className="mt-0.5 font-mono text-xs text-foreground/85">{p.recipientAccountNo}</div>
                   {p.nameMismatch ? (
-                    <span className="mt-1 inline-flex items-center gap-1 text-[11px] text-warning">
+                    <span className="type-label mt-1 inline-flex items-center gap-1 text-warning">
                       <span className="size-1 rounded-full bg-current" />
                       nameMismatch
                     </span>
@@ -148,14 +148,14 @@ export function PayoutDetailView({ payout: p, batch: b, isAdmin, onFilterBatch }
             </div>
             <div className="mt-4 grid grid-cols-1 border-t border-border sm:grid-cols-2">
               <div className="border-border px-5 py-3.5 sm:border-r">
-                <div className="text-[10px] text-muted-foreground">ยอดโอน</div>
-                <div className="mt-0.5 text-[15px] font-semibold tabular-nums">{money4(p.amount)}</div>
-                <div className="mt-0.5 text-[10px] text-muted-foreground">ค่าบริการร้าน {money4(p.reservedFee)}</div>
+                <div className="type-micro">ยอดโอน</div>
+                <div className="type-kpi mt-0.5">{money4(p.amount)}</div>
+                <div className="type-micro mt-0.5">ค่าบริการร้าน {money4(p.reservedFee)}</div>
               </div>
               {isAdmin ? (
                 <div className="border-t border-border px-5 py-3.5 sm:border-t-0">
-                  <div className="text-[10px] text-muted-foreground">ค่าโอนธนาคาร</div>
-                  <div className="mt-0.5 text-[15px] font-semibold tabular-nums">{bankFee}</div>
+                  <div className="type-micro">ค่าโอนธนาคาร</div>
+                  <div className="type-kpi mt-0.5">{bankFee}</div>
                 </div>
               ) : null}
             </div>
@@ -186,14 +186,14 @@ export function PayoutDetailView({ payout: p, batch: b, isAdmin, onFilterBatch }
                         {statusLabel(t.status)}
                         {t.note ? <span className="font-normal text-muted-foreground"> · {t.note}</span> : null}
                       </div>
-                      <div className="mt-0.5 font-mono text-[10px] text-muted-foreground">{fmtDTThai(t.at)}</div>
+                      <div className="type-micro mt-0.5 font-mono">{fmtDTThai(t.at)}</div>
                     </div>
                   </div>
                 ))
               ) : (
                 <p className="text-xs text-muted-foreground">—</p>
               )}
-              <p className="mt-2 text-[10px] text-muted-foreground">
+              <p className="type-micro mt-2">
                 {procSec != null
                   ? `processSeconds = ${procSec} วินาที ถึงจุดรับคำสั่ง ไม่ใช่เงินเข้าบัญชีผู้รับ`
                   : "ไม่โชว์ processSeconds เพราะใบยังไม่ COMPLETED"}
@@ -205,7 +205,7 @@ export function PayoutDetailView({ payout: p, batch: b, isAdmin, onFilterBatch }
             <div className="space-y-2 px-4 pb-4 text-xs">
               {p.journal.length ? (
                 p.journal.map((j, i) => (
-                  <div key={`${j.type}-${i}`} className="font-mono text-[11px] text-foreground/85">
+                  <div key={`${j.type}-${i}`} className="type-label font-mono text-foreground/85">
                     {j.type} · {fmtDTThai(j.at)}
                   </div>
                 ))
@@ -248,11 +248,11 @@ export function PayoutDetailView({ payout: p, batch: b, isAdmin, onFilterBatch }
                   <BatchRow label="bank_item_id" value={p.bankItemId || "—"} />
                   <div className="border-t border-border pt-2.5">
                     {isAdmin ? (
-                      <Button variant="outline" size="sm" className="h-7 text-[11px]" asChild>
+                      <Button variant="outline" size="sm" className="type-label h-7" asChild>
                         <Link to={`/payouts/batches/${b.id}`}>เปิดหน้าชุด</Link>
                       </Button>
                     ) : (
-                      <Button type="button" variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => onFilterBatch(b.id)}>
+                      <Button type="button" variant="outline" size="sm" className="type-label h-7" onClick={() => onFilterBatch(b.id)}>
                         ดูใบในชุดนี้ (เฉพาะสายร้าน)
                       </Button>
                     )}
@@ -281,7 +281,7 @@ export function PayoutDetailView({ payout: p, batch: b, isAdmin, onFilterBatch }
 
 function AmountLine({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between border-t border-border py-2 text-[11px] text-muted-foreground first:border-t-0">
+    <div className="type-label flex justify-between border-t border-border py-2 first:border-t-0">
       <span>{label}</span>
       <b className="font-medium tabular-nums text-foreground/90">{value}</b>
     </div>

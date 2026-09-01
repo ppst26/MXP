@@ -184,3 +184,14 @@ export type MerchantWatchRow = {
   oldestMin: number | null;
   alertScore: number;
 };
+
+export type MerchantPeriodFee = {
+  id: string;
+  name: string;
+  code: string;
+  amount: number;
+  reservedFee: number;
+  incurred: number;
+  incurredCount: number;
+  interbankCount: number;
+};

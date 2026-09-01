@@ -1,9 +1,13 @@
+import { AlertTriangle, Banknote, Clock, Files, Landmark, Layers } from "lucide-react";
 import type { Batch } from "../../mock/types";
 import { money } from "../../lib/money";
+import { STUCK_BATCH_LABEL } from "../../lib/copy";
 import { fmtDT } from "../../lib/bangkok";
 import { StatusPill } from "../../lib/StatusPill";
 import { Badge } from "@/components/ui/badge";
 import { SummaryMetricCard, SummaryMetricGrid } from "@/components/metric-card";
+
+const iconProps = { strokeWidth: 1.8 } as const;
 
 export function BatchTable({
   rows,
@@ -73,19 +77,35 @@ export function BatchTable({
   );
 }
 
-export function BatchSummary({ rows }: { rows: Batch[] }) {
+export function BatchSummary({
+  rows,
+  onStuckClick,
+}: {
+  rows: Batch[];
+  onStuckClick?: () => void;
+}) {
   const items = rows.reduce((s, b) => s + b.itemCount, 0);
   const amt = rows.reduce((s, b) => s + b.totalAmount, 0);
   const fee = rows.reduce((s, b) => s + b.bankFeeIncurred, 0);
   const open = rows.filter((b) => ["PENDING", "SENDING", "SENT", "NEEDS_REVIEW"].includes(b.status)).length;
+  const stuck = rows.filter((b) => b.stuck).length;
 
   return (
-    <SummaryMetricGrid>
-      <SummaryMetricCard label="ชุด" value={rows.length} />
-      <SummaryMetricCard label="ใบในชุด" value={items} />
-      <SummaryMetricCard label="ยอดโอนในชุด" value={money(amt)} />
-      <SummaryMetricCard label="ยังไม่จบ" value={open} />
-      <SummaryMetricCard label="ค่าโอนธนาคารที่เกิดแล้ว" value={money(fee)} />
+    <SummaryMetricGrid cols={6}>
+      <SummaryMetricCard icon={<Layers {...iconProps} />} label="ชุด" value={rows.length} />
+      <SummaryMetricCard icon={<Files {...iconProps} />} label="ใบในชุด" value={items} />
+      <SummaryMetricCard icon={<Banknote {...iconProps} />} label="ยอดโอนในชุด" value={money(amt)} />
+      <SummaryMetricCard icon={<Clock {...iconProps} />} label="ยังไม่จบ" value={open} />
+      <SummaryMetricCard
+        icon={<AlertTriangle {...iconProps} />}
+        label={STUCK_BATCH_LABEL}
+        value={stuck}
+        valueClassName={stuck > 0 ? "text-destructive" : undefined}
+        className={stuck > 0 ? "ring-destructive/35" : undefined}
+        onClick={stuck > 0 ? onStuckClick : undefined}
+        hint={stuck > 0 ? "คลิกกรองเฉพาะชุดค้าง" : undefined}
+      />
+      <SummaryMetricCard icon={<Landmark {...iconProps} />} label="ค่าโอนธนาคารที่เกิดแล้ว" value={money(fee)} />
     </SummaryMetricGrid>
   );
 }

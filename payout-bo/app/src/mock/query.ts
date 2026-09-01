@@ -4,6 +4,7 @@ import type {
   Merchant,
   MerchantBooks,
   MerchantWatchRow,
+  MerchantPeriodFee,
   MockDb,
   PeriodMetrics,
   Payout,
@@ -13,6 +14,7 @@ import type {
 } from "./types";
 import { MERCHANTS } from "./seed";
 import { NOW, addMs, fmtD, pad, prevRange, startOfDay } from "../lib/bangkok";
+import { STUCK_BATCH_LABEL } from "../lib/copy";
 
 export type PayoutFilter = {
   from: Date;
@@ -23,6 +25,7 @@ export type PayoutFilter = {
   q: string;
   recipientAccount: string;
   nameMismatch: boolean;
+  recipientBankCode?: string;
   batchId?: string;
 };
 
@@ -55,6 +58,7 @@ function inMerchant(p: Payout, merchantId: string): boolean {
 }
 
 const INTERBANK_FEE_ESTIMATE = 5;
+export const INTERBANK_FEE = INTERBANK_FEE_ESTIMATE;
 
 function countableBankFeeRows(rows: Payout[]): Payout[] {
   return rows.filter(
@@ -112,6 +116,31 @@ export function metrics(rows: Payout[]): PeriodMetrics {
   };
 }
 
+export function merchantPeriodFees(rows: Payout[]): MerchantPeriodFee[] {
+  const map = new Map<string, MerchantPeriodFee>();
+  for (const p of rows) {
+    const cur = map.get(p.merchantId) ?? {
+      id: p.merchantId,
+      name: p.merchantName,
+      code: p.merchantCode,
+      amount: 0,
+      reservedFee: 0,
+      incurred: 0,
+      incurredCount: 0,
+      interbankCount: 0,
+    };
+    cur.amount += p.amount;
+    cur.reservedFee += p.reservedFee;
+    if (p.route === "INTERBANK") cur.interbankCount += 1;
+    if (countableBankFeeRows([p]).length) {
+      cur.incurred += rowBankFee(p).amount;
+      cur.incurredCount += 1;
+    }
+    map.set(p.merchantId, cur);
+  }
+  return [...map.values()];
+}
+
 export function batchPeriodSummary(batches: Batch[]): BatchPeriodSummary {
   return {
     total: batches.length,
@@ -158,6 +187,7 @@ export function listPayouts(db: MockDb, f: PayoutFilter): Payout[] {
       }
       if (f.recipientAccount && p.recipientAccountNo !== f.recipientAccount.trim()) return false;
       if (f.nameMismatch && !p.nameMismatch) return false;
+      if (f.recipientBankCode && p.recipientBankCode !== f.recipientBankCode) return false;
       if (f.batchId && p.batchId !== f.batchId) return false;
       return true;
     })
@@ -224,14 +254,29 @@ export function timeseries(db: MockDb, from: Date, to: Date, f: PayoutFilter) {
   const pr = prevRange(from, to);
   const curRows = payoutsInPeriod(db, { ...f, from, to });
   const prevRows = payoutsInPeriod(db, { ...f, from: pr.from, to: pr.to });
-  const amt = (rows: Payout[], start: Date, end: Date) =>
-    rows
-      .filter((p) => p.status === "COMPLETED" && p.createdAt >= start && p.createdAt < end)
-      .reduce((s, p) => s + p.amount, 0);
+  const completed = (rows: Payout[], start: Date, end: Date) =>
+    rows.filter((p) => p.status === "COMPLETED" && p.createdAt >= start && p.createdAt < end);
+  const batchCount = (start: Date, end: Date) =>
+    db.batches.filter((b) => b.createdAt >= start && b.createdAt < end).length;
+  const inBucket = (rows: Payout[], start: Date, end: Date) =>
+    rows.filter((p) => p.createdAt >= start && p.createdAt < end);
   return buckets.map((b, i) => {
     const end = addMs(b.t, step);
     const prevStart = addMs(pr.from, i * step);
-    return { label: b.label, current: amt(curRows, b.t, end), previous: amt(prevRows, prevStart, addMs(prevStart, step)) };
+    const prevEnd = addMs(prevStart, step);
+    const cur = completed(curRows, b.t, end);
+    const prev = completed(prevRows, prevStart, prevEnd);
+    return {
+      label: b.label,
+      current: cur.reduce((s, p) => s + p.amount, 0),
+      previous: prev.reduce((s, p) => s + p.amount, 0),
+      countCurrent: cur.length,
+      countPrevious: prev.length,
+      batchCurrent: batchCount(b.t, end),
+      batchPrevious: batchCount(prevStart, prevEnd),
+      feeCurrent: inBucket(curRows, b.t, end).reduce((s, p) => s + p.reservedFee, 0),
+      feePrevious: inBucket(prevRows, prevStart, prevEnd).reduce((s, p) => s + p.reservedFee, 0),
+    };
   });
 }
 
@@ -388,7 +433,7 @@ export function houseAlerts(args: {
     out.push({
       id: "stuck",
       level: "alert",
-      text: `มีชุด SENDING/SENT ค้างเกินเกณฑ์ ${args.stuckBatchCount} ชุด`,
+      text: `${STUCK_BATCH_LABEL} · ${args.stuckBatchCount} ชุด`,
     });
   }
   if (src.bankBalance < args.queueAmount + src.minBalance) {

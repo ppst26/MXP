@@ -1,15 +1,14 @@
 import { useNavigate } from "react-router-dom";
 import { db } from "../mock/seed";
-import { houseAlerts, listBatches, queuePayouts } from "../mock/query";
+import { listBatches } from "../mock/query";
 import { useFilters } from "../state/FilterProvider";
 import { BatchFilterBar } from "../features/batches/BatchFilterBar";
 import { BatchSummary, BatchTable } from "../features/batches/BatchTable";
-import { HouseBanners } from "../features/overview/HouseBanners";
 import { Zone } from "@/components/metric-card";
 
 export function BatchesPage() {
   const nav = useNavigate();
-  const { filters } = useFilters();
+  const { filters, setFilters, setPreset } = useFilters();
   const rows = listBatches(db, {
     from: filters.from,
     to: filters.to,
@@ -17,33 +16,28 @@ export function BatchesPage() {
     q: filters.batchQ,
     stuck: filters.batchStuck,
   });
-  const pending = queuePayouts(db, "").filter((p) => p.status === "PENDING");
-  const processing = queuePayouts(db, "").filter((p) => p.status === "PROCESSING");
-  const alerts = houseAlerts({
-    source: db.source,
-    pendingCount: pending.length,
-    queueAmount: pending.concat(processing).reduce((s, p) => s + p.amount, 0),
-    stuckBatchCount: db.batches.filter((b) => b.stuck).length,
-    now: db.now,
-  }).filter((a) => a.id === "stuck");
 
   return (
     <div className="flex flex-col gap-4">
       <header>
-        <h1 className="font-heading text-xl tracking-tight">รายการชุดโอน</h1>
+        <h1 className="page-title">รายการชุดโอน</h1>
         <p className="text-sm text-muted-foreground">
           แพลตฟอร์มแอดมิน · หนึ่งแถว = หนึ่งออเดอร์ธนาคาร · ทั้งระบบ {db.batches.length} ชุด · พบ {rows.length}{" "}
           ชุดตามตัวกรอง
         </p>
       </header>
 
-      {alerts.length ? <HouseBanners alerts={alerts} /> : null}
-
       <section aria-label="ตัวกรอง">
         <BatchFilterBar />
       </section>
 
-      <BatchSummary rows={rows} />
+      <BatchSummary
+        rows={rows}
+        onStuckClick={() => {
+          setPreset("d30");
+          setFilters({ batchStuck: true });
+        }}
+      />
 
       <Zone title="ตารางชุด">
         <div className="overflow-auto rounded-sm surface-nested ring-1 ring-foreground/5">

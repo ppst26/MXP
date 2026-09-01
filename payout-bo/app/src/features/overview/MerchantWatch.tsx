@@ -39,7 +39,7 @@ function RiskMeter({ score }: { score: number }) {
   const capped = Math.min(100, score);
   const tone = riskTone(capped);
   return (
-    <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+    <span className="type-label inline-flex items-center gap-1.5">
       <span className="relative inline-flex h-1 w-[52px] overflow-hidden rounded-full bg-muted">
         <span
           className={cn(
@@ -100,7 +100,7 @@ export function MerchantWatch({
     <Card size="sm" className="overflow-hidden">
       <CardHeader className="flex flex-col gap-3 border-b sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <CardTitle className="text-[13px] font-semibold">ร้านค้าที่ต้องติดตาม</CardTitle>
+          <CardTitle>ร้านค้าที่ต้องติดตาม</CardTitle>
           <CardDescription>เรียงตามความเร่งด่วนจากคิวที่กำลังดำเนินการ · เจ้าของระบบเท่านั้น</CardDescription>
         </div>
         <div className="flex items-center gap-2">
@@ -108,9 +108,9 @@ export function MerchantWatch({
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="ค้นหาร้านค้า"
-            className="h-7 w-[190px] text-[11px]"
+            className="type-label h-7 w-[190px]"
           />
-          <Button type="button" variant="outline" size="sm" className="h-7 text-[11px]" onClick={() => onPick("")}>
+          <Button type="button" variant="outline" size="sm" className="type-label h-7" onClick={() => onPick("")}>
             ดูทั้งหมด
           </Button>
         </div>
@@ -120,37 +120,29 @@ export function MerchantWatch({
           <table className="data-table w-full text-xs">
             <thead>
               <tr className="border-b border-border">
-                <th className="px-4 py-2 text-left text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">ร้าน</th>
-                <th className="num px-4 py-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">สำเร็จช่วงนี้</th>
-                <th className="num px-4 py-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">ล้ม</th>
-                <th className="num px-4 py-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">รอคนดู</th>
-                <th className="num px-4 py-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">รอส่ง</th>
-                <th className="num px-4 py-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">กันไว้</th>
-                <th className="num px-4 py-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">เก่าสุด</th>
-                <th className="px-4 py-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">ความเสี่ยง</th>
-                <th className="px-4 py-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">สถานะ</th>
+                <th className="px-4 py-2 text-left type-micro font-semibold uppercase tracking-wide">ร้าน</th>
+                <th className="num px-4 py-2 type-micro font-semibold uppercase tracking-wide">สำเร็จช่วงนี้</th>
+                <th className="num px-4 py-2 type-micro font-semibold uppercase tracking-wide">ล้ม</th>
+                <th className="num px-4 py-2 type-micro font-semibold uppercase tracking-wide">รอคนดู</th>
+                <th className="num px-4 py-2 type-micro font-semibold uppercase tracking-wide">รอส่ง</th>
+                <th className="num px-4 py-2 type-micro font-semibold uppercase tracking-wide">กันไว้</th>
+                <th className="num px-4 py-2 type-micro font-semibold uppercase tracking-wide">เก่าสุด</th>
+                <th className="px-4 py-2 type-micro font-semibold uppercase tracking-wide">ความเสี่ยง</th>
+                <th className="px-4 py-2 type-micro font-semibold uppercase tracking-wide">สถานะ</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((x) => {
                 const status = rowStatus(x);
-                const heat = x.review > 0 || x.failed > 0 || (x.oldestMin != null && x.oldestMin >= 30);
                 return (
-                  <tr
-                    key={x.id}
-                    className={cn(
-                      "cursor-pointer border-b border-border transition-colors hover:bg-muted/40",
-                      heat && "bg-destructive/5",
-                    )}
-                    onClick={() => onPick(x.id)}
-                  >
+                  <tr key={x.id} className="hover" onClick={() => onPick(x.id)}>
                     <td className="px-4 py-3">
                       <span className="block font-medium text-foreground">{x.name}</span>
-                      <span className="block text-[10px] text-muted-foreground">{x.code}</span>
+                      <span className="type-micro block">{x.code}</span>
                     </td>
                     <td className="num px-4 py-3 align-top">
                       <span className="block tabular-nums text-foreground">{money(x.completedAmount)}</span>
-                      <span className="block text-[10px] text-muted-foreground">{x.completedCount} รายการ</span>
+                      <span className="type-micro block">{x.completedCount} รายการ</span>
                     </td>
                     <td className="num px-4 py-3 align-top">
                       <NumCell value={x.failed} tone="alert" />
@@ -167,7 +159,7 @@ export function MerchantWatch({
                       <RiskMeter score={x.alertScore} />
                     </td>
                     <td className="px-4 py-3 align-top">
-                      <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                      <span className="type-label inline-flex items-center gap-1.5">
                         <StatusDot tone={status.tone} />
                         {status.label}
                       </span>
@@ -178,7 +170,7 @@ export function MerchantWatch({
             </tbody>
           </table>
         </div>
-        <p className="border-t border-border px-4 py-2 text-[11px] text-muted-foreground">
+        <p className="type-label border-t border-border px-4 py-2">
           คลิกแถวกรองร้านนี้บนภาพรวม · ไม่ใช่จอร้าน · สูงสุด 8 แถว
         </p>
       </CardContent>

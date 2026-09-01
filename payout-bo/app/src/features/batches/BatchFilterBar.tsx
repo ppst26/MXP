@@ -26,7 +26,7 @@ const PRESETS: [DatePreset, string][] = [
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-1">
-      <Label className="text-[11px] text-muted-foreground">{label}</Label>
+      <Label className="type-label">{label}</Label>
       {children}
     </div>
   );

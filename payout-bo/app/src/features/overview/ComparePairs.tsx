@@ -1,11 +1,12 @@
-import { Area, Line, LineChart, CartesianGrid, XAxis, YAxis } from "recharts";
-import type { Payout, PayoutStatus } from "../../mock/types";
+import { useState } from "react";
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Pie, PieChart, ReferenceLine, XAxis, YAxis } from "recharts";
+import type { MerchantPeriodFee, Payout } from "../../mock/types";
 import { money, pct } from "../../lib/money";
-import { metrics, queueAge } from "../../mock/query";
-import { routeLabel, statusLabel } from "../../lib/status";
+import { INTERBANK_FEE, merchantPeriodFees, metrics } from "../../mock/query";
+import { routeLabel } from "../../lib/status";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
-import { Progress } from "@/components/ui/progress";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { cn } from "@/lib/utils";
 
 const tsConfig = {
@@ -14,28 +15,87 @@ const tsConfig = {
 } satisfies ChartConfig;
 
 type SeriesPoint = { label: string; current: number | null; previous: number | null };
+type VolumePoint = SeriesPoint & {
+  countCurrent: number;
+  countPrevious: number;
+  batchCurrent: number;
+  batchPrevious: number;
+};
+type CountMode = "count" | "batch";
+type AxisKind = "money" | "count" | "pct";
 
-const STATUS_ORDER: PayoutStatus[] = [
-  "COMPLETED",
-  "PROCESSING",
-  "PENDING",
-  "NEEDS_REVIEW",
-  "FAILED",
-  "REJECTED",
+const feeBarConfig = {
+  fee: { label: "ค่าโอน", color: "var(--warning)" },
+} satisfies ChartConfig;
+
+const bankCountConfig = {
+  count: { label: "ใบ", color: "var(--primary)" },
+} satisfies ChartConfig;
+
+const pieConfig = {
+  fee: { label: "ค่าบริการร้าน" },
+} satisfies ChartConfig;
+
+const SLICE_COLORS = [
+  "var(--chart-1)",
+  "var(--chart-3)",
+  "var(--chart-4)",
+  "var(--chart-2)",
+  "var(--chart-5)",
+  "var(--warning)",
+  "var(--muted-foreground)",
 ];
 
-const STATUS_STACK_CLASS: Record<PayoutStatus, string> = {
-  COMPLETED: "bg-success",
-  PROCESSING: "bg-primary",
-  PENDING: "bg-muted-foreground/45",
-  NEEDS_REVIEW: "bg-warning",
-  FAILED: "bg-destructive",
-  REJECTED: "bg-orange-500",
+/** สีแท่งตามรหัสธนาคารผู้รับ */
+const BANK_BAR_COLOR: Record<string, string> = {
+  "006": "#38bdf8",
+  "011": "#f4f4f5",
+  "004": "#22c55e",
+  "002": "#2563eb",
+  "025": "#eab308",
+  "014": "#8b5cf6",
 };
+
+const BANK_BAR_COLOR_BY_NAME: Record<string, string> = {
+  KTB: "#38bdf8",
+  TMB: "#f4f4f5",
+  KBANK: "#22c55e",
+  BBL: "#2563eb",
+  BAY: "#eab308",
+  SCB: "#8b5cf6",
+};
+
+function bankBarFill(code: string, name: string): string {
+  return BANK_BAR_COLOR[code] ?? BANK_BAR_COLOR_BY_NAME[name] ?? "var(--muted-foreground)";
+}
+
+function formatAxisTick(value: number, kind: AxisKind): string {
+  if (kind === "pct") return `${Math.round(value)}`;
+  if (kind === "count") return Math.round(value).toLocaleString("th-TH");
+  if (Math.abs(value) >= 1000) {
+    const k = value / 1000;
+    return `${k.toLocaleString("th-TH", { maximumFractionDigits: k >= 10 ? 0 : 1 })}k`;
+  }
+  return value.toLocaleString("th-TH", { maximumFractionDigits: 0 });
+}
+
+function MetricYAxis({ kind }: { kind: AxisKind }) {
+  return (
+    <YAxis
+      tickLine={false}
+      axisLine={false}
+      width={kind === "money" ? 48 : 36}
+      tickMargin={8}
+      tickCount={5}
+      domain={kind === "pct" ? [0, 100] : [0, "auto"]}
+      tickFormatter={(v) => formatAxisTick(Number(v), kind)}
+    />
+  );
+}
 
 function ChartLegendRow() {
   return (
-    <div className="mt-2 flex gap-4 text-[11px] text-muted-foreground">
+    <div className="type-label mt-2 flex gap-4">
       <span className="inline-flex items-center gap-1.5">
         <i className="inline-block h-0.5 w-3.5 rounded-full bg-primary" />
         ช่วงนี้
@@ -48,23 +108,26 @@ function ChartLegendRow() {
   );
 }
 
-function CompletedAmountChart({ ts }: { ts: SeriesPoint[] }) {
-  const data = ts.map((d) => ({ ...d, current: d.current ?? 0, previous: d.previous ?? 0 }));
+function CompletedAmountChart({ ts, grain }: { ts: VolumePoint[]; grain: "hour" | "day" }) {
+  const data = ts.map((d) => ({
+    label: d.label,
+    current: d.current ?? 0,
+    previous: d.previous ?? 0,
+  }));
+  const grainLabel = grain === "hour" ? "รายชั่วโมง" : "รายวัน";
+
   return (
     <Card size="sm">
-      <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
-        <div>
-          <CardTitle className="text-[13px] font-semibold">ยอดโอนสำเร็จ</CardTitle>
-          <CardDescription>ยอดเงินสำเร็จรายชั่วโมง</CardDescription>
-        </div>
-        <span className="text-[11px] text-muted-foreground">วันนี้</span>
+      <CardHeader>
+        <CardTitle>ยอดโอนสำเร็จ</CardTitle>
+        <CardDescription>ยอดเงิน COMPLETED {grainLabel}</CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer config={tsConfig} className="aspect-auto h-[182px] w-full">
-          <LineChart data={data} accessibilityLayer margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+          <LineChart data={data} accessibilityLayer margin={{ top: 8, right: 8, left: 4, bottom: 0 }}>
             <CartesianGrid vertical={false} strokeDasharray="3 3" />
             <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} minTickGap={24} />
-            <YAxis hide domain={[0, "auto"]} />
+            <MetricYAxis kind="money" />
             <ChartTooltip
               content={
                 <ChartTooltipContent
@@ -87,9 +150,87 @@ function CompletedAmountChart({ ts }: { ts: SeriesPoint[] }) {
   );
 }
 
+function CompletedCountChart({
+  ts,
+  grain,
+  showBatches,
+}: {
+  ts: VolumePoint[];
+  grain: "hour" | "day";
+  showBatches: boolean;
+}) {
+  const [mode, setMode] = useState<CountMode>("count");
+  const view = mode === "batch" && !showBatches ? "count" : mode;
+  const data = ts.map((d) => ({
+    label: d.label,
+    current: view === "batch" ? d.batchCurrent : d.countCurrent,
+    previous: view === "batch" ? d.batchPrevious : d.countPrevious,
+  }));
+  const grainLabel = grain === "hour" ? "รายชั่วโมง" : "รายวัน";
+  const unit = view === "batch" ? "ชุด" : "ใบ";
+
+  return (
+    <Card size="sm">
+      <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
+        <div>
+          <CardTitle>{view === "batch" ? "จำนวนชุด" : "จำนวนใบสำเร็จ"}</CardTitle>
+          <CardDescription>{view === "batch" ? `ชุดที่เปิด ${grainLabel}` : `ใบ COMPLETED ${grainLabel}`}</CardDescription>
+        </div>
+        {showBatches ? (
+          <ToggleGroup
+            type="single"
+            size="sm"
+            variant="outline"
+            value={view}
+            onValueChange={(v) => {
+              if (v === "count" || v === "batch") setMode(v);
+            }}
+          >
+            <ToggleGroupItem value="count">ใบ</ToggleGroupItem>
+            <ToggleGroupItem value="batch">ชุด</ToggleGroupItem>
+          </ToggleGroup>
+        ) : null}
+      </CardHeader>
+      <CardContent>
+        <ChartContainer config={tsConfig} className="aspect-auto h-[182px] w-full">
+          <BarChart data={data} accessibilityLayer margin={{ top: 8, right: 8, left: 4, bottom: 0 }}>
+            <CartesianGrid vertical={false} strokeDasharray="3 3" />
+            <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} minTickGap={16} />
+            <MetricYAxis kind="count" />
+            <ChartTooltip
+              content={
+                <ChartTooltipContent
+                  formatter={(value, name) => (
+                    <span>
+                      {name === "current" ? "ช่วงนี้" : "ช่วงก่อน"} · {Number(value).toLocaleString("th-TH")} {unit}
+                    </span>
+                  )}
+                />
+              }
+            />
+            <Bar dataKey="previous" fill="var(--color-previous)" radius={2} maxBarSize={12} />
+            <Bar dataKey="current" fill="var(--color-current)" radius={2} maxBarSize={12} />
+          </BarChart>
+        </ChartContainer>
+        <ChartLegendRow />
+      </CardContent>
+    </Card>
+  );
+}
+
 const SUCCESS_TARGET = 98;
 
-function SuccessRateChart({ rateTs, m, pm }: { rateTs: SeriesPoint[]; m: ReturnType<typeof metrics>; pm: ReturnType<typeof metrics> }) {
+function SuccessRateChart({
+  rateTs,
+  m,
+  pm,
+  grain,
+}: {
+  rateTs: SeriesPoint[];
+  m: ReturnType<typeof metrics>;
+  pm: ReturnType<typeof metrics>;
+  grain: "hour" | "day";
+}) {
   const data = rateTs.map((d) => ({
     ...d,
     current: d.current ?? undefined,
@@ -97,31 +238,34 @@ function SuccessRateChart({ rateTs, m, pm }: { rateTs: SeriesPoint[]; m: ReturnT
   }));
   const deltaPts = (m.successRate - pm.successRate) * 100;
   const deltaUp = deltaPts >= 0;
+  const grainLabel = grain === "hour" ? "รายชั่วโมง" : "รายวัน";
 
   return (
     <Card size="sm">
       <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
         <div>
-          <CardTitle className="text-[13px] font-semibold">อัตราสำเร็จ</CardTitle>
-          <CardDescription>การเปลี่ยนแปลงรายชั่วโมง</CardDescription>
+          <CardTitle>อัตราสำเร็จ</CardTitle>
+          <CardDescription>
+            {grainLabel} · เป้า {SUCCESS_TARGET.toFixed(1)}%
+          </CardDescription>
         </div>
-        <span className={cn("text-[11px] font-medium", deltaUp ? "text-success" : "text-destructive")}>
-          {deltaUp ? "↑" : "↓"} {Math.abs(deltaPts).toFixed(1)} จุด
-        </span>
-      </CardHeader>
-      <CardContent>
-        <div className="mb-3">
-          <div className="text-[30px] font-semibold leading-none tracking-tight tabular-nums">
+        <div className="text-right">
+          <div className="type-kpi tabular-nums">
             {(m.successRate * 100).toFixed(1)}
             <span className="ml-1 text-xs font-medium text-muted-foreground">%</span>
           </div>
-          <p className="mt-1 text-[11px] text-muted-foreground">เป้าหมายการดำเนินงาน {SUCCESS_TARGET.toFixed(1)}%</p>
+          <span className={cn("type-label font-medium", deltaUp ? "text-success" : "text-destructive")}>
+            {deltaUp ? "↑" : "↓"} {Math.abs(deltaPts).toFixed(1)} จุด
+          </span>
         </div>
-        <ChartContainer config={tsConfig} className="aspect-auto h-[74px] w-full">
-          <LineChart data={data} accessibilityLayer margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+      </CardHeader>
+      <CardContent>
+        <ChartContainer config={tsConfig} className="aspect-auto h-[182px] w-full">
+          <AreaChart data={data} accessibilityLayer margin={{ top: 8, right: 8, left: 4, bottom: 0 }}>
             <CartesianGrid vertical={false} strokeDasharray="3 3" />
-            <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={6} minTickGap={32} hide={data.length > 12} />
-            <YAxis hide domain={[0, 100]} />
+            <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} minTickGap={24} />
+            <MetricYAxis kind="pct" />
+            <ReferenceLine y={SUCCESS_TARGET} stroke="var(--muted-foreground)" strokeDasharray="4 4" />
             <ChartTooltip
               content={
                 <ChartTooltipContent
@@ -133,9 +277,9 @@ function SuccessRateChart({ rateTs, m, pm }: { rateTs: SeriesPoint[]; m: ReturnT
                 />
               }
             />
-            <Line type="monotone" dataKey="previous" stroke="var(--color-previous)" strokeWidth={1.25} strokeDasharray="4 4" dot={false} connectNulls />
-            <Line type="monotone" dataKey="current" stroke="var(--color-current)" strokeWidth={2} dot={false} connectNulls />
-          </LineChart>
+            <Area type="monotone" dataKey="previous" stroke="var(--color-previous)" fill="var(--color-previous)" fillOpacity={0.08} strokeDasharray="4 4" connectNulls />
+            <Area type="monotone" dataKey="current" stroke="var(--color-current)" fill="var(--color-current)" fillOpacity={0.2} connectNulls />
+          </AreaChart>
         </ChartContainer>
         <ChartLegendRow />
       </CardContent>
@@ -159,24 +303,19 @@ function RoutePerformanceBars({
   const deltaPts = (inter.m.successRate - same.m.successRate) * 100;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="grid grid-cols-2 gap-3">
       {routes.map(({ route, m }) => (
-        <div key={route} className="space-y-1.5">
-          <div className="flex items-start justify-between gap-2 text-[11px]">
-            <span className="font-medium text-foreground">{routeLabel(route)}</span>
-            <span className="text-right tabular-nums text-muted-foreground">
-              {m.count} ใบ · {money(m.amount)}
-              {showHouse && route === "INTERBANK" ? ` · ค่าโอน ${money(m.incurred)}` : showHouse ? " · ค่าโอน 0.00" : null}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Progress value={m.successRate * 100} className="h-1.5 flex-1" />
-            <span className="w-10 text-right text-[11px] font-medium tabular-nums text-foreground">{pct(m.successRate)}</span>
-          </div>
+        <div key={route} className="surface-nested rounded-sm border border-foreground/10 p-3">
+          <p className="type-label text-muted-foreground">{routeLabel(route)}</p>
+          <p className="type-kpi mt-1 tabular-nums">{pct(m.successRate)}</p>
+          <p className="type-label mt-1 tabular-nums">
+            {m.count} ใบ · {money(m.amount)}
+            {showHouse && route === "INTERBANK" ? ` · ค่าโอน ${money(m.incurred)}` : showHouse ? " · ค่าโอน 0.00" : null}
+          </p>
         </div>
       ))}
       {same.m.count > 0 && inter.m.count > 0 ? (
-        <p className={cn("text-[11px]", deltaPts < 0 ? "text-warning" : "text-muted-foreground")}>
+        <p className={cn("type-label col-span-2", deltaPts < 0 ? "text-warning" : "text-muted-foreground")}>
           ข้ามธนาคาร {deltaPts >= 0 ? "สูงกว่า" : "ต่ำกว่า"} ในธนาคาร {Math.abs(deltaPts).toFixed(1)} จุด
         </p>
       ) : null}
@@ -184,79 +323,306 @@ function RoutePerformanceBars({
   );
 }
 
-function StatusStack({ rows }: { rows: Payout[] }) {
+function DestinationBanks({
+  rows,
+  onPick,
+}: {
+  rows: Payout[];
+  onPick?: (bankCode: string) => void;
+}) {
   const total = rows.length;
-  const segments = STATUS_ORDER.map((status) => ({
-    status,
-    label: statusLabel(status),
-    count: rows.filter((p) => p.status === status).length,
-  })).filter((s) => s.count > 0);
+  const map = new Map<string, { code: string; name: string; count: number; amount: number }>();
+  for (const p of rows) {
+    const cur = map.get(p.recipientBankCode) ?? {
+      code: p.recipientBankCode,
+      name: p.recipientBankName,
+      count: 0,
+      amount: 0,
+    };
+    cur.count += 1;
+    cur.amount += p.amount;
+    map.set(p.recipientBankCode, cur);
+  }
+  const grouped = [...map.values()].sort((a, b) => b.count - a.count);
 
   if (!total) {
     return <p className="text-xs text-muted-foreground">ไม่มีใบในช่วงที่เลือก</p>;
   }
 
+  const data = grouped.map((b) => ({ ...b, short: b.name }));
+
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex h-2.5 overflow-hidden rounded-full bg-muted">
-        {segments.map((s) => (
-          <div
-            key={s.status}
-            className={cn("h-full min-w-0 transition-all", STATUS_STACK_CLASS[s.status])}
-            style={{ width: `${(s.count / total) * 100}%` }}
-            title={`${s.label} ${s.count} (${((s.count / total) * 100).toFixed(1)}%)`}
-          />
-        ))}
-      </div>
-      <div className="space-y-1">
-        {segments.map((s) => (
-          <div key={s.status} className="flex items-center justify-between gap-2 text-[11px]">
-            <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-              <i className={cn("inline-block size-2 rounded-sm", STATUS_STACK_CLASS[s.status])} />
-              {s.label}
-            </span>
-            <span className="tabular-nums text-foreground">
-              {s.count} · {((s.count / total) * 100).toFixed(1)}%
-            </span>
+    <ChartContainer config={bankCountConfig} className="aspect-auto h-[200px] w-full">
+      <BarChart data={data} layout="vertical" accessibilityLayer margin={{ top: 4, right: 8, left: 8, bottom: 0 }}>
+        <CartesianGrid horizontal={false} strokeDasharray="3 3" />
+        <XAxis type="number" hide />
+        <YAxis type="category" dataKey="short" tickLine={false} axisLine={false} width={44} tickMargin={4} />
+        <ChartTooltip
+          content={
+            <ChartTooltipContent
+              formatter={(value, _name, item) => {
+                const row = item?.payload as { count: number; amount: number };
+                return (
+                  <span>
+                    {Number(value).toLocaleString("th-TH")} ใบ · {money(row.amount)}
+                  </span>
+                );
+              }}
+            />
+          }
+        />
+        <Bar
+          dataKey="count"
+          radius={[0, 4, 4, 0]}
+          maxBarSize={18}
+          cursor={onPick ? "pointer" : undefined}
+          onClick={(d) => {
+            const code = (d as { code?: string }).code;
+            if (code) onPick?.(code);
+          }}
+        >
+          {data.map((b) => (
+            <Cell
+              key={b.code}
+              fill={bankBarFill(b.code, b.name)}
+              stroke={b.name === "TMB" || b.code === "011" ? "var(--border)" : "transparent"}
+            />
+          ))}
+        </Bar>
+      </BarChart>
+    </ChartContainer>
+  );
+}
+
+const FEE_TOP = 6;
+
+function topMerchants(
+  shops: MerchantPeriodFee[],
+  valueOf: (r: MerchantPeriodFee) => number,
+): { id: string; name: string; code: string; row: MerchantPeriodFee }[] {
+  const sorted = [...shops].filter((s) => valueOf(s) > 0).sort((a, b) => valueOf(b) - valueOf(a));
+  if (sorted.length <= FEE_TOP) {
+    return sorted.map((row) => ({ id: row.id, name: row.name, code: row.code, row }));
+  }
+  const head = sorted.slice(0, FEE_TOP);
+  const rest = sorted.slice(FEE_TOP);
+  const other: MerchantPeriodFee = {
+    id: "other",
+    name: "อื่นๆ",
+    code: "",
+    amount: rest.reduce((s, r) => s + r.amount, 0),
+    reservedFee: rest.reduce((s, r) => s + r.reservedFee, 0),
+    incurred: rest.reduce((s, r) => s + r.incurred, 0),
+    incurredCount: rest.reduce((s, r) => s + r.incurredCount, 0),
+    interbankCount: rest.reduce((s, r) => s + r.interbankCount, 0),
+  };
+  return [...head, other].map((row) => ({ id: row.id, name: row.name, code: row.code, row }));
+}
+
+function MerchantMdrCard({
+  rows,
+  onPick,
+}: {
+  rows: Payout[];
+  onPick?: (merchantId: string) => void;
+}) {
+  const shops = merchantPeriodFees(rows);
+  const totalFee = shops.reduce((s, r) => s + r.reservedFee, 0);
+  const totalAmt = shops.reduce((s, r) => s + r.amount, 0);
+  const items = topMerchants(shops, (r) => r.reservedFee);
+  const data = items.map((i, idx) => ({
+    id: i.id,
+    name: i.name,
+    fee: i.row.reservedFee,
+    fill: SLICE_COLORS[idx % SLICE_COLORS.length],
+  }));
+
+  return (
+    <Card size="sm">
+      <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
+        <div>
+          <CardDescription>ค่าบริการร้าน · MDR</CardDescription>
+          <CardTitle>สัดส่วนค่าธรรมเนียมร้าน</CardTitle>
+        </div>
+        <div className="text-right">
+          <div className="type-kpi tabular-nums">{money(totalFee, 4)}</div>
+          <p className="type-label">{totalAmt ? pct(totalFee / totalAmt) : "0.0%"} ของยอดโอน</p>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {data.length ? (
+          <div className="grid items-center gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+            <ChartContainer config={pieConfig} className="aspect-auto mx-auto h-[180px] w-full max-w-[220px]">
+              <PieChart>
+                <ChartTooltip
+                  content={
+                    <ChartTooltipContent
+                      labelFormatter={(_label, payload) => {
+                        const row = payload?.[0]?.payload as { name?: string } | undefined;
+                        return row?.name ?? "";
+                      }}
+                      formatter={(value) => (
+                        <span className="font-mono font-medium tabular-nums">{money(Number(value), 4)}</span>
+                      )}
+                    />
+                  }
+                />
+                <Pie
+                  data={data}
+                  dataKey="fee"
+                  nameKey="name"
+                  innerRadius={48}
+                  outerRadius={72}
+                  strokeWidth={2}
+                  onClick={(d) => {
+                    const id = (d as { id?: string }).id;
+                    if (id && id !== "other") onPick?.(id);
+                  }}
+                >
+                  {data.map((d) => (
+                    <Cell key={d.id} fill={d.fill} className="cursor-pointer stroke-card" />
+                  ))}
+                </Pie>
+              </PieChart>
+            </ChartContainer>
+            <ul className="space-y-1.5">
+              {data.map((d) => (
+                <li key={d.id} className="type-label flex items-center justify-between gap-2">
+                  <span className="inline-flex min-w-0 items-center gap-1.5">
+                    <i className="size-2 shrink-0 rounded-sm" style={{ background: d.fill }} />
+                    <span className="truncate">{d.name}</span>
+                  </span>
+                  <span className="shrink-0 tabular-nums">{money(d.fee, 4)}</span>
+                </li>
+              ))}
+            </ul>
           </div>
-        ))}
-      </div>
-    </div>
+        ) : (
+          <p className="text-xs text-muted-foreground">ไม่มีข้อมูลในช่วงที่เลือก</p>
+        )}
+        <p className="type-label mt-3">SUM(reserved_fee) ต่อร้านในช่วง · ห้ามบวกกับค่าโอนธนาคาร</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function MerchantBankFeeCard({
+  rows,
+  onPick,
+}: {
+  rows: Payout[];
+  onPick?: (merchantId: string) => void;
+}) {
+  const shops = merchantPeriodFees(rows);
+  const items = topMerchants(shops, (r) => r.interbankCount * INTERBANK_FEE);
+  const data = items.map((i, idx) => ({
+    id: i.id,
+    name: i.name,
+    fee: i.row.interbankCount * INTERBANK_FEE,
+    slips: i.row.interbankCount,
+    fill: SLICE_COLORS[idx % SLICE_COLORS.length],
+  }));
+  const totalQuoted = data.reduce((s, d) => s + d.fee, 0);
+  const totalSlips = data.reduce((s, d) => s + d.slips, 0);
+
+  return (
+    <Card size="sm">
+      <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
+        <div>
+          <CardDescription>ค่าโอนธนาคาร · บ้านจ่าย</CardDescription>
+          <CardTitle>สะสมต่อร้านในช่วง</CardTitle>
+        </div>
+        <div className="text-right">
+          <div className="type-kpi tabular-nums">{money(totalQuoted)}</div>
+          <p className="type-label">
+            {INTERBANK_FEE.toFixed(2)} × {totalSlips} ใบข้ามธนาคาร
+          </p>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {data.length ? (
+          <ChartContainer config={feeBarConfig} className="aspect-auto h-[200px] w-full">
+            <BarChart data={data} accessibilityLayer margin={{ top: 8, right: 8, left: 4, bottom: 8 }}>
+              <CartesianGrid vertical={false} strokeDasharray="3 3" />
+              <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} interval={0} />
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                width={40}
+                tickFormatter={(v) => formatAxisTick(Number(v), "money")}
+              />
+              <ChartTooltip
+                content={
+                  <ChartTooltipContent
+                    formatter={(value) => (
+                      <span className="font-mono font-medium tabular-nums">{money(Number(value))}</span>
+                    )}
+                  />
+                }
+              />
+              <Bar
+                dataKey="fee"
+                radius={[4, 4, 0, 0]}
+                maxBarSize={36}
+                cursor={onPick ? "pointer" : undefined}
+                onClick={(d) => {
+                  const id = (d as { id?: string }).id;
+                  if (id && id !== "other") onPick?.(id);
+                }}
+              >
+                {data.map((d) => (
+                  <Cell key={d.id} fill={d.fill} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ChartContainer>
+        ) : (
+          <p className="text-xs text-muted-foreground">ไม่มีใบข้ามธนาคารในช่วงที่เลือก</p>
+        )}
+        <p className="type-label mt-3">
+          ผู้รับไม่ใช่ KTB = ข้ามธนาคาร · {INTERBANK_FEE.toFixed(2)} บาท × จำนวนใบถอนต่อร้าน · ไม่บวกกับ MDR
+        </p>
+      </CardContent>
+    </Card>
   );
 }
 
 export function ComparePairs({
   rows,
-  queue,
   ts,
   rateTs,
   m,
   pm,
   showHouse,
+  grain,
+  onGoPayouts,
+  onPickMerchant,
 }: {
   rows: Payout[];
-  queue: Payout[];
-  ts: SeriesPoint[];
+  ts: VolumePoint[];
   rateTs: SeriesPoint[];
   m: ReturnType<typeof metrics>;
   pm: ReturnType<typeof metrics>;
   showHouse: boolean;
+  grain: "hour" | "day";
+  onGoPayouts: (patch: { recipientBankCode?: string }) => void;
+  onPickMerchant?: (merchantId: string) => void;
 }) {
-  const ages = queueAge(queue);
-  const openCount = ages.reduce((s, a) => s + a.count, 0);
-  const ageMax = Math.max(1, ...ages.map((a) => a.count));
-
   return (
     <div className="flex flex-col gap-3">
-      <div className="grid gap-3 lg:grid-cols-[1.38fr_1fr]">
-        <CompletedAmountChart ts={ts} />
-        <SuccessRateChart rateTs={rateTs} m={m} pm={pm} />
+      <div className="grid gap-3 lg:grid-cols-[7fr_3fr]">
+        <CompletedAmountChart ts={ts} grain={grain} />
+        <CompletedCountChart ts={ts} grain={grain} showBatches={showHouse} />
+      </div>
+      <div className="grid gap-3 lg:grid-cols-2">
+        <MerchantMdrCard rows={rows} onPick={onPickMerchant} />
+        {showHouse ? <MerchantBankFeeCard rows={rows} onPick={onPickMerchant} /> : null}
       </div>
       <div className="grid gap-3 lg:grid-cols-3">
         <Card size="sm">
           <CardHeader>
             <CardDescription>คู่ 2 — ประสิทธิภาพเส้นทาง</CardDescription>
-            <CardTitle className="text-[13px] font-semibold">ในธนาคาร vs ข้ามธนาคาร</CardTitle>
+            <CardTitle>ในธนาคาร vs ข้ามธนาคาร</CardTitle>
           </CardHeader>
           <CardContent>
             <RoutePerformanceBars rows={rows} showHouse={showHouse} />
@@ -264,40 +630,17 @@ export function ComparePairs({
         </Card>
         <Card size="sm">
           <CardHeader>
-            <CardDescription>คู่ 3 — สัดส่วนสถานะช่วง</CardDescription>
-            <CardTitle className="text-[13px] font-semibold">{rows.length} ใบในช่วงที่เลือก</CardTitle>
+            <CardDescription>คู่ 3 — ธนาคารที่โอนไป</CardDescription>
+            <CardTitle>{rows.length} ใบในช่วงที่เลือก</CardTitle>
           </CardHeader>
           <CardContent>
-            <StatusStack rows={rows} />
+            <DestinationBanks
+              rows={rows}
+              onPick={(code) => onGoPayouts({ recipientBankCode: code })}
+            />
           </CardContent>
         </Card>
-        <Card size="sm">
-          <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
-            <div>
-              <CardDescription>อายุคิวที่ยังไม่จบ</CardDescription>
-              <CardTitle className="text-[13px] font-semibold">รายการรอส่งและกำลังส่ง ณ ตอนนี้</CardTitle>
-            </div>
-            <span className="text-[11px] text-muted-foreground">{openCount} ใบ</span>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            {ages.map((a) => {
-              const pctW = (a.count / ageMax) * 100;
-              const tone = a.label.startsWith(">") ? "bg-destructive" : a.label.includes("30") ? "bg-warning" : "bg-primary";
-              return (
-                <div key={a.label} className="grid grid-cols-[72px_1fr_28px] items-center gap-2 text-[11px] text-muted-foreground">
-                  <span>{a.label}</span>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                    <div className={cn("h-full rounded-full", tone)} style={{ width: `${pctW}%` }} />
-                  </div>
-                  <span className="text-right tabular-nums text-foreground">{a.count}</span>
-                </div>
-              );
-            })}
-            <p className="mt-auto text-xs text-muted-foreground">
-              {ages.map((a) => `${a.label} ${a.count}`).join(" · ")}
-            </p>
-          </CardContent>
-        </Card>
+        <SuccessRateChart rateTs={rateTs} m={m} pm={pm} grain={grain} />
       </div>
     </div>
   );

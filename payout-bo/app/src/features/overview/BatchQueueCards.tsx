@@ -1,5 +1,8 @@
+import { AlertTriangle, Layers, Truck } from "lucide-react";
 import type { Batch } from "../../mock/types";
 import { MetricCard } from "@/components/metric-card";
+
+const iconProps = { strokeWidth: 1.8 } as const;
 
 export function BatchQueueCards({
   open,
@@ -16,6 +19,7 @@ export function BatchQueueCards({
   return (
     <div className="grid gap-2 sm:grid-cols-3">
       <MetricCard
+        icon={<Layers {...iconProps} />}
         label="ชุดรอส่ง"
         value={open.length}
         hint={open.length ? `${items} ใบในชุด` : "ไม่มี"}
@@ -23,6 +27,7 @@ export function BatchQueueCards({
         onClick={() => onGoBatches({ batchStatus: "PENDING" })}
       />
       <MetricCard
+        icon={<Truck {...iconProps} />}
         label="ชุดระหว่างทาง"
         value={inFlight.length}
         hint={inFlight.length ? "ห้ามส่งซ้ำถ้ามีเลขออเดอร์" : "ไม่มี"}
@@ -30,6 +35,7 @@ export function BatchQueueCards({
         onClick={() => onGoBatches({ batchStatus: "SENT" })}
       />
       <MetricCard
+        icon={<AlertTriangle {...iconProps} />}
         label="ชุดต้องดู"
         value={needsLook.length}
         hint="รอคนดูหรือค้างเกินเกณฑ์"
