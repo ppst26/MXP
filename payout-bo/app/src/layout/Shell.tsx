@@ -1,10 +1,12 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { db } from "../mock/seed";
 import { fmtDT } from "../lib/bangkok";
+import { useFilters } from "../state/FilterProvider";
 import { useViewer } from "../state/use-viewer";
 import type { Role } from "../state/use-viewer";
 import { AppSidebar } from "./AppSidebar";
 import { AppBreadcrumb } from "./AppBreadcrumb";
+import { NotificationBell } from "../features/notifications/NotificationBell";
 import {
   Select,
   SelectContent,
@@ -16,7 +18,20 @@ import {
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
 export function Shell() {
+  const nav = useNavigate();
+  const { pathname } = useLocation();
   const { role, setRole } = useViewer();
+  const { setFilters } = useFilters();
+
+  const onRoleChange = (next: Role) => {
+    setRole(next);
+    if (next === "merchant") {
+      setFilters({ merchantId: "", listPage: 1 });
+      if (pathname.startsWith("/payouts/batches")) {
+        nav("/payouts/overview");
+      }
+    }
+  };
 
   return (
     <SidebarProvider>
@@ -25,7 +40,8 @@ export function Shell() {
         <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4">
           <AppBreadcrumb />
           <div className="ml-auto flex items-center gap-2">
-            <Select value={role} onValueChange={(v) => setRole(v as Role)}>
+            <NotificationBell />
+            <Select value={role} onValueChange={(v) => onRoleChange(v as Role)}>
               <SelectTrigger size="sm">
                 <SelectValue />
               </SelectTrigger>
