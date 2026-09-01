@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { NOW } from "../lib/bangkok";
 import type { Batch, MockDb, Payout, SourceAccount, TopUpEvent } from "./types";
 import { listInbox, type HouseDemo } from "./query";
+import { db, TOPUP_SEED } from "./seed";
 
 const demoOff: HouseDemo = {
   sendOff: false,
@@ -33,7 +34,7 @@ function source(patch: Partial<SourceAccount> = {}): SourceAccount {
   };
 }
 
-function db(patch: Partial<MockDb> = {}): MockDb {
+function makeDb(patch: Partial<MockDb> = {}): MockDb {
   return {
     now: NOW,
     source: source(),
@@ -81,7 +82,7 @@ function batch(patch: Partial<Batch> & Pick<Batch, "id" | "status">): Batch {
 describe("listInbox admin live", () => {
   it("orders review, pool-low, waiting, queue and badges live only", () => {
     const inbox = listInbox(
-      db({
+      makeDb({
         source: source({ bankBalance: 99000 }),
         batches: [
           batch({ id: "b-q", status: "PENDING" }),
@@ -102,7 +103,7 @@ describe("listInbox admin live", () => {
 
   it("uses stuck click target for waiting when a batch is stuck", () => {
     const inbox = listInbox(
-      db({
+      makeDb({
         batches: [batch({ id: "b-s", status: "SENT", stuck: true, sentAt: NOW })],
       }),
       { isAdmin: true, merchantId: "", demo: demoOff },
@@ -117,7 +118,7 @@ describe("listInbox admin live", () => {
   });
 
   it("shows no-source as pool-low", () => {
-    const inbox = listInbox(db(), { isAdmin: true, merchantId: "", demo: { ...demoOff, noSource: true } }, []);
+    const inbox = listInbox(makeDb(), { isAdmin: true, merchantId: "", demo: { ...demoOff, noSource: true } }, []);
     const pool = inbox.live.find((i) => i.id === "pool-low");
     expect(pool?.title).toBe("ยังไม่ตั้งบัญชีต้นทาง — ห้ามเดาบัญชี");
     expect(pool?.to).toEqual({ path: "/payouts/overview" });
@@ -127,7 +128,7 @@ describe("listInbox admin live", () => {
 describe("listInbox merchant", () => {
   it("hides pool and batches, shows operate-low and scoped payouts", () => {
     const inbox = listInbox(
-      db({
+      makeDb({
         source: source({ bankBalance: 99000 }),
         payouts: [
           payout({ referenceId: "p-pend", status: "PENDING" }),
@@ -154,7 +155,7 @@ describe("listInbox merchant", () => {
       { id: "topup-acme-1", at: new Date("2026-08-31T17:00:00+07:00"), merchantId: "m-acme", amount: 50000 },
     ];
     const inbox = listInbox(
-      db({
+      makeDb({
         payouts: [
           payout({
             referenceId: "p-ok",
@@ -187,7 +188,7 @@ describe("listInbox merchant", () => {
 describe("listInbox admin recent", () => {
   it("lists settled and failed batches not merchant top-ups", () => {
     const inbox = listInbox(
-      db({
+      makeDb({
         batches: [
           batch({
             id: "b-ok",
@@ -207,5 +208,16 @@ describe("listInbox admin recent", () => {
     );
     expect(inbox.recent.map((i) => i.id)).toEqual(["batch-b-fail", "batch-b-ok"]);
     expect(inbox.recent[0]?.to.path).toBe("/payouts/batches/b-fail");
+  });
+});
+
+describe("listInbox against seeded db", () => {
+  it("shows pool-low for admin and top-up for Acme", () => {
+    const admin = listInbox(db, { isAdmin: true, merchantId: "", demo: demoOff }, TOPUP_SEED);
+    expect(admin.live.some((i) => i.id === "pool-low")).toBe(true);
+    const shop = listInbox(db, { isAdmin: false, merchantId: "m-acme", demo: demoOff }, TOPUP_SEED);
+    expect(shop.live.some((i) => i.id === "operate-low")).toBe(true);
+    expect(shop.recent.some((i) => i.id === "topup-acme-1")).toBe(true);
+    expect(admin.recent.some((i) => i.id.startsWith("topup-"))).toBe(false);
   });
 });

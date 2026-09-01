@@ -1,4 +1,4 @@
-import type { Batch, Merchant, MockDb, Payout, SourceAccount } from "./types";
+import type { Batch, Merchant, MockDb, Payout, SourceAccount, TopUpEvent } from "./types";
 import { NOW, addMs, fmtD, pad, startOfDay } from "../lib/bangkok";
 
 function rng(seed: number) {
@@ -64,6 +64,32 @@ export const BOOK_SEED: Record<string, { operate: number; parking: number; freez
   "m-dawn": { operate: 6500, parking: 0, freeze: 0 },
 };
 
+export const TOPUP_SEED: TopUpEvent[] = [
+  {
+    id: "topup-acme-1",
+    at: new Date("2026-08-31T16:40:00+07:00"),
+    merchantId: "m-acme",
+    amount: 50000,
+  },
+];
+
+/** บัญชีรับถอนที่ร้านลงทะเบียน — บางร้านมี บางร้านไม่มี */
+export const SETTLEMENT_ACCOUNT_SEED: Record<
+  string,
+  { bankName: string; accountNo: string; accountName: string }
+> = {
+  "m-acme": {
+    bankName: "KTB",
+    accountNo: "098-7-12345-6",
+    accountName: "บจก. แอคมี",
+  },
+  "m-nova": {
+    bankName: "SCB",
+    accountNo: "405-2-88888-1",
+    accountName: "Nova Play Co., Ltd.",
+  },
+};
+
 export const MERCHANTS: Merchant[] = [
   { id: "r-alpha", code: "ALPHA9k2Qx", name: "ตัวแทน อัลฟ่า", role: "RESELLER", parentId: null, rate: 0.007 },
   { id: "r-beta", code: "BETA4mN81p", name: "ตัวแทน เบต้า", role: "RESELLER", parentId: null, rate: 0.008 },
@@ -88,8 +114,8 @@ function createDb(): MockDb {
     bankName: "KTB",
     tier: "INBOUND",
     status: "ACTIVE",
-    bankBalance: 186400,
-    bookBalance: 186150,
+    bankBalance: 99000,
+    bookBalance: 98800,
     minBalance: 50000,
     dailyTxnCap: 200,
     dailyAmountCap: 500000,
@@ -431,3 +457,5 @@ function createDb(): MockDb {
 }
 
 export const db: MockDb = createDb();
+
+export { seedBoUsers, seedLoginEvents } from "./access-seed";
