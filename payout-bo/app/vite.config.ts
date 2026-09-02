@@ -14,8 +14,4 @@ export default defineConfig({
     },
     dedupe: ["react", "react-dom"],
   },
-  test: {
-    include: ["src/**/*.test.ts"],
-    environment: "node",
-  },
 });
