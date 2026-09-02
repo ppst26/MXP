@@ -18,6 +18,7 @@ import type {
   PayoutStatus,
   Route,
   SourceAccount,
+  TimelinePoint,
   TopUpEvent,
 } from "./types";
 import { MERCHANTS, SETTLEMENT_ACCOUNT_SEED } from "./seed";
@@ -466,6 +467,44 @@ export function listMerchantBookRows(db: Pick<MockDb, "payouts" | "books">): Mer
       balance: seed.operate + seed.parking + freezeBalance,
     };
   });
+}
+
+/** ไทม์ไลน์ใบถอนจากคอลัมน์คิวจริง — ไม่แทรก PROCESSING ถ้าไม่มีเวลาเข้าชุด */
+export function buildPayoutQueueTimeline(p: Payout, batch: Batch | null): TimelinePoint[] {
+  const points: TimelinePoint[] = [{ at: p.createdAt, status: "PENDING" }];
+
+  if (batch?.sentAt && p.batchId && p.status !== "PENDING" && p.status !== "REJECTED") {
+    points.push({ at: batch.sentAt, status: "PROCESSING", note: "เข้าชุด" });
+  }
+
+  if (p.confirmedAt) {
+    points.push({
+      at: p.confirmedAt,
+      status: p.status === "COMPLETED" ? "COMPLETED" : p.status,
+      note: "confirmed_at",
+    });
+  }
+
+  const terminal: PayoutStatus[] = ["COMPLETED", "FAILED", "REJECTED", "NEEDS_REVIEW"];
+  const endAt = p.updatedAt;
+  if (endAt && terminal.includes(p.status)) {
+    const last = points[points.length - 1]!;
+    const duplicate =
+      last.at.getTime() === endAt.getTime() ||
+      (last.note === "confirmed_at" && p.status === "COMPLETED");
+    if (!duplicate) {
+      points.push({ at: endAt, status: p.status });
+    }
+  } else if (
+    !p.confirmedAt &&
+    p.status !== "PENDING" &&
+    p.updatedAt &&
+    points[points.length - 1]?.status !== p.status
+  ) {
+    points.push({ at: p.updatedAt, status: p.status });
+  }
+
+  return points.sort((a, b) => a.at.getTime() - b.at.getTime());
 }
 
 export type PayoutReconMatch = "matched" | "discrepancy";

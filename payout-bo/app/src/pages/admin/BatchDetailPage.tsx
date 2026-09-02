@@ -24,7 +24,6 @@ export function AdminBatchDetailPage() {
     <BatchDetailView
       batch={b}
       items={items}
-      source={db.source}
       onOpenPayout={(ref) => nav(`/payouts/${ref}`)}
     />
   );

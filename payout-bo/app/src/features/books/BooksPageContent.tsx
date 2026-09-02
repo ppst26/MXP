@@ -24,7 +24,7 @@ const bookAccessors = {
 export function BooksPageContent() {
   const nav = useNavigate();
   const { setFilters, setPreset } = useFilters();
-  const rows = useMemo(() => listMerchantBookRows(db), []);
+  const rows = useMemo(() => listMerchantBookRows(db).filter((r) => r.role === "DIRECT"), []);
   const {
     slice,
     page,
@@ -75,7 +75,7 @@ export function BooksPageContent() {
                   className={cn(r.role === "DIRECT" && "clickable")}
                   onClick={() => openShop(r.merchantId, r.role)}
                 >
-                  <td className={r.role === "DIRECT" ? "pl-8" : undefined}>
+                  <td>
                     <div className="font-medium">{r.name}</div>
                     <div className="text-xs text-muted-foreground">
                       {r.code}

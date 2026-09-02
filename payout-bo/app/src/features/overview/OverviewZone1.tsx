@@ -1,12 +1,12 @@
 import { useState, type ReactNode } from "react";
-import { AlertTriangle, Clock, Layers, List, Plus, Wallet } from "lucide-react";
+import { AlertTriangle, Clock, Layers, List, Plus } from "lucide-react";
 import type { Batch, Payout, SourceAccount } from "../../mock/types";
 import { money } from "../../lib/money";
 import { BALANCE_MAX_AGE_MS, sumAmt } from "../../mock/query";
 import { NOW } from "../../lib/bangkok";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
-import { STUCK_BATCH_LABEL, StuckBatchHeading } from "../batches/StuckBatchHeading";
+import { STUCK_BATCH_LABEL } from "../batches/StuckBatchHeading";
 import { FocusRow } from "./FocusRow";
 import { cn } from "@/lib/utils";
 
@@ -227,20 +227,21 @@ function PayoutFocusList({
   pending,
   processing,
   review,
-  held,
+  stuckCount,
   onGoList,
+  onGoBatches,
 }: {
   pending: Payout[];
   processing: Payout[];
   review: Payout[];
-  held: number;
+  stuckCount: number;
   onGoList: (statuses: string[]) => void;
+  onGoBatches: (patch: { batchStatus?: string; batchStuck?: boolean }) => void;
 }) {
   const oldest = pending.slice().sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())[0];
   const oldestMin = oldest ? Math.round((NOW.getTime() - oldest.createdAt.getTime()) / 60000) : 0;
   const unconf = processing.filter((p) => (p.bankBulkOrderId || p.bankOrderId) && !p.confirmedAt);
   const conf = processing.filter((p) => p.confirmedAt);
-  const openCount = pending.length + processing.length + review.length;
 
   const processingSub =
     (unconf.length ? `ห้ามส่งซ้ำ ${unconf.length}` : "ในชุด/กำลังโอน") + (conf.length ? ` · รอผล ${conf.length}` : "");
@@ -273,12 +274,12 @@ function PayoutFocusList({
         onClick={() => onGoList(["NEEDS_REVIEW"])}
       />
       <FocusRow
-        title="เงินที่กันไว้"
-        sub={`PENDING + PROCESSING · ผลรวมใบ ไม่ใช่สมุดร้าน · ${openCount} รายการที่ยังไม่จบ`}
-        count={`฿ ${money(held)}`}
-        tone="quiet"
-        icon={<Wallet className="size-3.5" strokeWidth={1.8} />}
-        onClick={() => onGoList(["PENDING", "PROCESSING"])}
+        title={STUCK_BATCH_LABEL}
+        sub={stuckCount ? `${stuckCount} ชุด` : "ไม่มี"}
+        count={stuckCount}
+        tone={stuckCount ? "warn" : "quiet"}
+        icon={<Clock className="size-3.5" strokeWidth={1.8} />}
+        onClick={() => onGoBatches({ batchStuck: true })}
       />
     </div>
   );
@@ -341,7 +342,6 @@ function FollowUpHeroRight({
   pending,
   processing,
   review,
-  held,
   open,
   inFlight,
   needsLook,
@@ -351,7 +351,6 @@ function FollowUpHeroRight({
   pending: Payout[];
   processing: Payout[];
   review: Payout[];
-  held: number;
   open: Batch[];
   inFlight: Batch[];
   needsLook: Batch[];
@@ -390,12 +389,16 @@ function FollowUpHeroRight({
 
       <div className="flex min-h-0 flex-1 flex-col gap-2">
         {tab === "payouts" ? (
-          <>
-            <div className="min-h-0 flex-1">
-              <PayoutFocusList pending={pending} processing={processing} review={review} held={held} onGoList={onGoList} />
-            </div>
-            <StuckBatchHeading count={stuckCount} onClick={() => onGoBatches({ batchStuck: true })} />
-          </>
+          <div className="min-h-0 flex-1">
+            <PayoutFocusList
+              pending={pending}
+              processing={processing}
+              review={review}
+              stuckCount={stuckCount}
+              onGoList={onGoList}
+              onGoBatches={onGoBatches}
+            />
+          </div>
         ) : (
           <BatchFocusList open={open} inFlight={inFlight} needsLook={needsLook} onGoBatches={onGoBatches} />
         )}
@@ -446,7 +449,6 @@ export function OverviewZone1({
           pending={pending}
           processing={processing}
           review={review}
-          held={held}
           open={open}
           inFlight={inFlight}
           needsLook={needsLook}

@@ -1,12 +1,11 @@
 import type { ReactNode } from "react";
-import type { Batch, Payout, SourceAccount } from "../../mock/types";
+import type { Batch, Payout } from "../../mock/types";
 import { money, money4 } from "../../lib/money";
 import { fmtDTThai, fmtTime } from "../../lib/bangkok";
 import { batchLabel, payoutLabel, routeLabel, statusPillClass } from "../../lib/status";
 import { DetailPageHeader, DetailPageShell } from "@/components/page-back-link";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertTriangle, Landmark } from "lucide-react";
 import { TablePagination } from "@/components/table-pagination";
 import { useSortedPagination } from "@/hooks/use-sorted-pagination";
 import { SortableTh } from "@/components/sortable-table-head";
@@ -108,7 +107,6 @@ function childStatusClass(status: string): string {
 type Props = {
   batch: Batch;
   items: Payout[];
-  source: SourceAccount;
   onOpenPayout: (ref: string) => void;
 };
 
@@ -123,7 +121,7 @@ const itemAccessors = {
   bankItemId: (p: Payout) => p.bankItemId ?? "",
 };
 
-export function BatchDetailView({ batch: b, items, source, onOpenPayout }: Props) {
+export function BatchDetailView({ batch: b, items, onOpenPayout }: Props) {
   const {
     slice: itemSlice,
     page: itemPage,
@@ -163,7 +161,7 @@ export function BatchDetailView({ batch: b, items, source, onOpenPayout }: Props
       : money(b.bankFeeIncurred);
 
   return (
-    <DetailPageShell backTo="/payouts/batches" backLabel="กลับสู่รายการชุดโอน">
+    <DetailPageShell backTo="/payouts/batches" backLabel="กลับสู่รายการชุดโอน" className="max-w-none">
       <DetailPageHeader
         trailing={
           <div className="flex flex-col items-end gap-2">
@@ -185,36 +183,7 @@ export function BatchDetailView({ batch: b, items, source, onOpenPayout }: Props
       >
         <div className="text-sm font-semibold text-muted-foreground">รายละเอียดชุดโอน</div>
         <div className="mt-1 font-mono text-lg font-semibold tracking-tight text-foreground">{b.id}</div>
-        <div className="mt-3 flex items-start gap-3">
-          <span className="grid size-10 shrink-0 place-items-center rounded-lg border border-foreground/15 text-foreground/85">
-            <Landmark className="size-4" strokeWidth={1.8} />
-          </span>
-          <div className="min-w-0">
-            <div className="text-base font-semibold text-foreground">
-              {source.accountName} · {source.bankName}
-            </div>
-            <div className="mt-0.5 font-mono text-sm text-foreground/90">
-              {source.accountNo} · {source.bankCode}
-            </div>
-            <div className="mt-1 text-sm text-muted-foreground">source_account_id: {source.id}</div>
-          </div>
-        </div>
       </DetailPageHeader>
-
-      {b.bankBulkOrderId ? (
-        <div className="flex items-start gap-2.5 rounded-lg border border-warning/30 bg-warning/5 px-3.5 py-3">
-          <span className="grid size-6 shrink-0 place-items-center rounded-md bg-warning/10 text-warning">
-            <AlertTriangle className="size-3.5" strokeWidth={1.8} />
-          </span>
-          <div className="min-w-0">
-            <div className="text-xs font-semibold text-foreground/90">ชุดนี้มีเลขออเดอร์ธนาคารแล้ว — ห้ามส่งซ้ำ</div>
-            <div className="type-label mt-0.5">
-              การส่งซ้ำอาจทำให้มีการโอนเงินซ้ำ แม้บางรายการในชุดยังรอการตรวจสอบ
-            </div>
-            <div className="type-micro mt-1 font-mono text-warning">bank_bulk_order_id: {b.bankBulkOrderId}</div>
-          </div>
-        </div>
-      ) : null}
 
       <div className="grid grid-cols-1 gap-3.5 xl:grid-cols-[minmax(0,1.34fr)_minmax(330px,0.76fr)]">
         <Panel
