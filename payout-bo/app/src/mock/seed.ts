@@ -112,7 +112,7 @@ function createDb(): MockDb {
     accountName: "บจก. แม็กซ์เพย์ จำกัด",
     bankCode: "006",
     bankName: "KTB",
-    tier: "INBOUND",
+    tier: "OUTBOUND",
     status: "ACTIVE",
     bankBalance: 99000,
     bookBalance: 98800,
@@ -350,8 +350,12 @@ function createDb(): MockDb {
     .filter((p) => p.status === "PENDING" && fmtD(p.createdAt) === fmtD(NOW))
     .slice(0, 4);
   if (pendingBatchItems.length) {
+    const pendingId = "b-20260831-open";
+    pendingBatchItems.forEach((p) => {
+      p.batchId = pendingId;
+    });
     batches.unshift({
-      id: "b-20260831-open",
+      id: pendingId,
       status: "PENDING",
       itemCount: pendingBatchItems.length,
       totalAmount: pendingBatchItems.reduce((s, p) => s + p.amount, 0),
@@ -368,7 +372,7 @@ function createDb(): MockDb {
       confirmedAt: null,
       settledAt: null,
       stuck: false,
-      itemRefs: [],
+      itemRefs: pendingBatchItems.map((p) => p.referenceId),
     });
   }
 
@@ -404,6 +408,10 @@ function createDb(): MockDb {
   });
   batches.unshift(sending);
 
+  const failRefs = payouts
+    .filter((p) => fmtD(p.createdAt) === "2026-08-30" && !p.batchId)
+    .slice(0, 4)
+    .map((p) => p.referenceId);
   batches.push({
     id: "b-20260830-fail",
     status: "FAILED",
@@ -422,7 +430,7 @@ function createDb(): MockDb {
     confirmedAt: null,
     settledAt: null,
     stuck: false,
-    itemRefs: [],
+    itemRefs: failRefs,
   });
 
   payouts.forEach((p) => {

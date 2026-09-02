@@ -92,7 +92,7 @@ export function MetricCard({
         <CardDescription className="leading-snug">
           <MetricLabel icon={icon} label={label} />
         </CardDescription>
-        <p className={cn("type-kpi", tone === "quiet" && "text-muted-foreground")}>{value}</p>
+        <p className={cn("type-stat-value mt-1", tone === "quiet" && "text-muted-foreground")}>{value}</p>
       </CardHeader>
       {hint ? <CardContent className="text-xs text-muted-foreground">{hint}</CardContent> : null}
     </Card>
@@ -181,7 +181,7 @@ export function SummaryMetricCard({
       {tooltip ? <KpiTooltip content={tooltip} /> : null}
       <CardContent className={cn("py-3", tooltip && "pr-7")}>
         <MetricLabel icon={icon} label={label} />
-        <p className={cn("type-kpi mt-1", valueClassName)}>{value}</p>
+        <p className={cn("type-stat-value mt-1", valueClassName)}>{value}</p>
         {hint ? <p className="type-label mt-1 leading-snug">{hint}</p> : null}
         {footer ? <div className="type-label mt-1 leading-snug">{footer}</div> : null}
       </CardContent>

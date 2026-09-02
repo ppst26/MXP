@@ -1,9 +1,9 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { db } from "../mock/seed";
-import { BatchDetailView } from "../features/batches/BatchDetailView";
+import { db } from "../../mock/seed";
+import { BatchDetailView } from "../../features/batches/BatchDetailView";
 import { DetailPageHeader, DetailPageShell } from "@/components/page-back-link";
 
-export function BatchDetailPage() {
+export function AdminBatchDetailPage() {
   const { batchId } = useParams();
   const nav = useNavigate();
   const b = db.batches.find((x) => x.id === batchId) || db.batches[0];

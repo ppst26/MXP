@@ -21,11 +21,12 @@ const PRESETS: [DatePreset, string][] = [
   ["d7", "7 วัน"],
   ["d14", "14 วัน"],
   ["d30", "ทั้งเดือน"],
+  ["d90", "3 เดือน"],
 ];
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-2">
       <Label className="type-label">{label}</Label>
       {children}
     </div>
@@ -41,7 +42,7 @@ export function BatchFilterBar() {
         <Field label="สถานะชุด">
           <Select
             value={filters.batchStatus || "all"}
-            onValueChange={(v) => setFilters({ batchStatus: v === "all" ? "" : v })}
+            onValueChange={(v) => setFilters({ batchStatus: v === "all" ? "" : v, batchListPage: 1 })}
           >
             <SelectTrigger size="sm" className="w-[148px]">
               <SelectValue />
@@ -63,13 +64,13 @@ export function BatchFilterBar() {
             className="h-8 w-[220px] sm:w-[260px]"
             value={filters.batchQ}
             placeholder="ค้นหา…"
-            onChange={(e) => setFilters({ batchQ: e.target.value })}
+            onChange={(e) => setFilters({ batchQ: e.target.value, batchListPage: 1 })}
           />
         </Field>
         <Field label="ค้างเกินเกณฑ์">
           <Select
             value={filters.batchStuck ? "1" : "all"}
-            onValueChange={(v) => setFilters({ batchStuck: v === "1" })}
+            onValueChange={(v) => setFilters({ batchStuck: v === "1", batchListPage: 1 })}
           >
             <SelectTrigger size="sm" className="w-[168px]">
               <SelectValue />

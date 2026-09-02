@@ -6,10 +6,13 @@ export type Role = "admin" | "merchant";
 export type ViewerContextValue = {
   role: Role;
   isAdmin: boolean;
+  isAuthenticated: boolean;
   demo: HouseDemo;
   scopedMerchantId: string;
   setRole: (role: Role) => void;
   setDemo: (patch: Partial<HouseDemo>) => void;
+  login: () => void;
+  logout: () => void;
 };
 
 export const ViewerContext = createContext<ViewerContextValue | null>(null);

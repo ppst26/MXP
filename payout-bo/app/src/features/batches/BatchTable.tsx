@@ -1,21 +1,31 @@
 import { AlertTriangle, Banknote, Clock, Files, Landmark, Layers } from "lucide-react";
 import type { Batch } from "../../mock/types";
+import type { SortDir } from "../../lib/sort";
 import { money } from "../../lib/money";
 import { STUCK_BATCH_LABEL } from "../../lib/copy";
 import { fmtDT } from "../../lib/bangkok";
 import { StatusPill } from "../../lib/StatusPill";
+import { SortableTh } from "@/components/sortable-table-head";
 import { Badge } from "@/components/ui/badge";
 import { SummaryMetricCard, SummaryMetricGrid } from "@/components/metric-card";
 
 const iconProps = { strokeWidth: 1.8 } as const;
 
+type SortProps = {
+  sortKey: string | null;
+  sortDir: SortDir;
+  onSort: (key: string) => void;
+};
+
 export function BatchTable({
   rows,
   relaxed = false,
+  sort,
   onOpen,
 }: {
   rows: Batch[];
   relaxed?: boolean;
+  sort: SortProps;
   onOpen: (id: string) => void;
 }) {
   if (!rows.length) {
@@ -25,19 +35,20 @@ export function BatchTable({
       </p>
     );
   }
+  const { sortKey, sortDir, onSort } = sort;
   return (
     <table className={relaxed ? "data-table relaxed" : "data-table"}>
       <thead>
         <tr>
-          <th>เปิดชุด</th>
-          <th>สถานะ</th>
-          <th className="num">ใบ</th>
-          <th className="num">ยอดโอน</th>
-          <th>ใน / ข้าม</th>
-          <th className="num">ค่าโอน</th>
-          <th>เลขออเดอร์ธนาคาร</th>
-          <th>package</th>
-          <th>สาเหตุชุด</th>
+          <SortableTh label="เปิดชุด" sortKey="createdAt" activeKey={sortKey} direction={sortDir} onSort={onSort} />
+          <SortableTh label="สถานะ" sortKey="status" activeKey={sortKey} direction={sortDir} onSort={onSort} />
+          <SortableTh label="ใบ" sortKey="itemCount" activeKey={sortKey} direction={sortDir} onSort={onSort} className="num" />
+          <SortableTh label="ยอดโอน" sortKey="totalAmount" activeKey={sortKey} direction={sortDir} onSort={onSort} className="num" />
+          <SortableTh label="ใน / ข้าม" sortKey="routes" activeKey={sortKey} direction={sortDir} onSort={onSort} />
+          <SortableTh label="ค่าโอน" sortKey="bankFeeIncurred" activeKey={sortKey} direction={sortDir} onSort={onSort} className="num" />
+          <SortableTh label="เลขออเดอร์ธนาคาร" sortKey="bankBulkOrderId" activeKey={sortKey} direction={sortDir} onSort={onSort} />
+          <SortableTh label="package" sortKey="packageRefNo" activeKey={sortKey} direction={sortDir} onSort={onSort} />
+          <SortableTh label="สาเหตุชุด" sortKey="failureReason" activeKey={sortKey} direction={sortDir} onSort={onSort} />
         </tr>
       </thead>
       <tbody>
@@ -47,12 +58,12 @@ export function BatchTable({
             <td>
               <StatusPill status={b.status} />
             </td>
-            <td className="num">{b.itemCount}</td>
-            <td className="num">{money(b.totalAmount)}</td>
+            <td className="num text-base font-semibold tabular-nums">{b.itemCount}</td>
+            <td className="num text-base font-semibold tabular-nums">{money(b.totalAmount)}</td>
             <td>
               {b.sameBankCount} ใน · {b.interbankCount} ข้าม
             </td>
-            <td className="num">
+            <td className="num tabular-nums">
               {money(b.bankFeeIncurred)}
               {b.bankFeeEstimated ? <span className="text-muted-foreground"> (ประมาณ)</span> : null}
             </td>
@@ -101,7 +112,6 @@ export function BatchSummary({
         label={STUCK_BATCH_LABEL}
         value={stuck}
         valueClassName={stuck > 0 ? "text-destructive" : undefined}
-        className={stuck > 0 ? "ring-destructive/35" : undefined}
         onClick={stuck > 0 ? onStuckClick : undefined}
         hint={stuck > 0 ? "คลิกกรองเฉพาะชุดค้าง" : undefined}
       />

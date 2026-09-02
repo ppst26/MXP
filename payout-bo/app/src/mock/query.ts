@@ -21,7 +21,7 @@ import type {
   TopUpEvent,
 } from "./types";
 import { MERCHANTS, SETTLEMENT_ACCOUNT_SEED } from "./seed";
-import { NOW, addMs, fmtD, pad, prevRange, startOfDay } from "../lib/bangkok";
+import { NOW, addMs, fmtD, fmtDT, pad, prevRange, startOfDay } from "../lib/bangkok";
 import { STUCK_BATCH_LABEL } from "../lib/copy";
 import { money } from "../lib/money";
 
@@ -218,6 +218,10 @@ export function listBatches(db: MockDb, f: BatchFilter): Batch[] {
     .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 }
 
+export function latestBatches(db: MockDb, limit = 10): Batch[] {
+  return [...db.batches].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).slice(0, limit);
+}
+
 export function merchantWatch(periodRows: Payout[], queueRows: Payout[], merchantId: string): MerchantWatchRow[] | null {
   const selected = merchById(merchantId);
   if (selected?.role === "DIRECT") return null;
@@ -374,6 +378,138 @@ export function queueHeldOf(rows: Payout[]): number {
     .reduce((s, p) => s + p.amount + p.reservedFee, 0);
 }
 
+export type PayoutRateRow = {
+  id: string;
+  code: string;
+  name: string;
+  role: Merchant["role"];
+  parentId: string | null;
+  parentName: string | null;
+  parentRate: number | null;
+  rate: number;
+  spread: number | null;
+  mdrSum: number;
+};
+
+function rateTree(merchants: Merchant[]): Merchant[] {
+  const resellers = merchants
+    .filter((m) => m.role === "RESELLER")
+    .sort((a, b) => a.name.localeCompare(b.name, "th"));
+  const rows: Merchant[] = [];
+  for (const line of resellers) {
+    rows.push(line);
+    merchants
+      .filter((m) => m.parentId === line.id)
+      .sort((a, b) => a.name.localeCompare(b.name, "th"))
+      .forEach((shop) => rows.push(shop));
+  }
+  return rows;
+}
+
+/** ลำดับสายแล้วร้าน — สมุดร้านยังต้องเรียงตัวแทนด้วย */
+export function listRateTreeIds(merchants: Merchant[] = MERCHANTS): string[] {
+  return rateTree(merchants).map((m) => m.id);
+}
+
+export function listPayoutRates(
+  merchants: Merchant[] = MERCHANTS,
+  payouts: Payout[] = [],
+): PayoutRateRow[] {
+  const byId = new Map(merchants.map((m) => [m.id, m]));
+  const mdrByShop = new Map<string, number>();
+  for (const p of payouts) {
+    mdrByShop.set(p.merchantId, (mdrByShop.get(p.merchantId) ?? 0) + p.reservedFee);
+  }
+  return rateTree(merchants)
+    .filter((m) => m.role === "DIRECT")
+    .map((m) => {
+      const parent = m.parentId ? byId.get(m.parentId) : undefined;
+      return {
+        id: m.id,
+        code: m.code,
+        name: m.name,
+        role: m.role,
+        parentId: m.parentId,
+        parentName: parent?.name ?? null,
+        parentRate: parent ? parent.rate : null,
+        rate: m.rate,
+        spread: parent ? m.rate - parent.rate : null,
+        mdrSum: mdrByShop.get(m.id) ?? 0,
+      };
+    });
+}
+
+export type MerchantBookRow = MerchantBooks & {
+  name: string;
+  code: string;
+  role: Merchant["role"];
+  parentName: string | null;
+};
+
+export function listMerchantBookRows(db: Pick<MockDb, "payouts" | "books">): MerchantBookRow[] {
+  const byId = new Map(MERCHANTS.map((m) => [m.id, m]));
+  return MERCHANTS.map((m) => {
+    const seed = db.books[m.id] ?? { operate: 0, parking: 0, freeze: 0 };
+    const pendingPayout = pendingPayoutOf(db.payouts, m.id);
+    const freezeBalance = seed.freeze + pendingPayout;
+    return {
+      merchantId: m.id,
+      name: m.name,
+      code: m.code,
+      role: m.role,
+      parentName: m.parentId ? (byId.get(m.parentId)?.name ?? null) : null,
+      operate: seed.operate,
+      parking: seed.parking,
+      freeze: seed.freeze,
+      pendingPayout,
+      freezeBalance,
+      balance: seed.operate + seed.parking + freezeBalance,
+    };
+  });
+}
+
+export type PayoutReconMatch = "matched" | "discrepancy";
+
+export type PayoutReconRow = {
+  referenceId: string;
+  merchantId: string;
+  merchantName: string;
+  amount: number;
+  bankFee: number;
+  bankOrderId: string | null;
+  confirmedAt: Date | null;
+  status: PayoutStatus;
+  match: PayoutReconMatch;
+  note: string;
+};
+
+export function listPayoutRecon(db: Pick<MockDb, "payouts">): PayoutReconRow[] {
+  return db.payouts
+    .filter((p) => p.confirmedAt != null || p.bankFee > 0)
+    .map((p) => {
+      const discrepancy = p.status !== "COMPLETED";
+      const match: PayoutReconMatch = discrepancy ? "discrepancy" : "matched";
+      return {
+        referenceId: p.referenceId,
+        merchantId: p.merchantId,
+        merchantName: merchById(p.merchantId)?.name ?? p.merchantName,
+        amount: p.amount,
+        bankFee: p.bankFee,
+        bankOrderId: p.bankOrderId,
+        confirmedAt: p.confirmedAt,
+        status: p.status,
+        match,
+        note: discrepancy
+          ? (p.failureReason ?? "ธนาคารมีรายการตัดเงิน แต่ใบถอนไม่สำเร็จ")
+          : "เดบิตตรงกับใบถอนสำเร็จ",
+      };
+    })
+    .sort((a, b) => {
+      if (a.match !== b.match) return a.match === "discrepancy" ? -1 : 1;
+      return (b.confirmedAt?.getTime() ?? 0) - (a.confirmedAt?.getTime() ?? 0);
+    });
+}
+
 /** สมุดร้าน DIRECT ร้านเดียว — ตัวแทน/ทุกร้าน = null ห้ามบวกข้ามร้าน */
 export function booksOf(db: MockDb, merchantId: string): MerchantBooks | null {
   if (!merchantId) return null;
@@ -475,6 +611,9 @@ export type ShopUserSummary = {
   accountCount: number;
   adminCount: number;
   lastLoginAt: Date | null;
+  operate: number;
+  pendingAmount: number;
+  pendingCount: number;
 };
 
 export function listShopMembers(users: BoUser[], merchantId: string, q: string): BoUser[] {
@@ -494,38 +633,36 @@ export function listShopMembers(users: BoUser[], merchantId: string, q: string):
 
 export function listShopUserSummaries(
   users: BoUser[],
-  args: { merchantId: string; q: string; nameOf?: (merchantId: string) => string },
+  args: {
+    merchantId: string;
+    q: string;
+    nameOf?: (merchantId: string) => string;
+    db: Pick<MockDb, "payouts" | "books">;
+  },
 ): ShopUserSummary[] {
-  const members = listBoUsers(users, {
-    tab: "merchant",
-    merchantId: args.merchantId,
-    q: "",
-    isAdmin: true,
-  });
-  const grouped = new Map<string, BoUser[]>();
-  for (const u of members) {
-    if (!u.merchantId) continue;
-    const list = grouped.get(u.merchantId);
-    if (list) list.push(u);
-    else grouped.set(u.merchantId, [u]);
-  }
+  const ids = subtreeIds(args.merchantId);
   const needle = args.q.trim().toLowerCase();
   const nameOf = args.nameOf ?? ((id: string) => merchById(id)?.name ?? id);
-  return [...grouped.entries()]
-    .map(([merchantId, list]) => {
-      const shop = merchById(merchantId);
+  return MERCHANTS.filter((m) => m.role === "DIRECT")
+    .filter((m) => !ids || ids.includes(m.id))
+    .map((shop) => {
+      const list = users.filter((u) => u.kind === "merchant" && u.merchantId === shop.id);
       const lastLoginAt = list.reduce<Date | null>((latest, u) => {
         if (!u.lastLoginAt) return latest;
         if (!latest || u.lastLoginAt.getTime() > latest.getTime()) return u.lastLoginAt;
         return latest;
       }, null);
+      const holds = args.db.payouts.filter((p) => p.merchantId === shop.id && HOLDS.has(p.status));
       return {
-        merchantId,
-        name: nameOf(merchantId),
-        code: shop?.code ?? "",
+        merchantId: shop.id,
+        name: nameOf(shop.id),
+        code: shop.code,
         accountCount: list.length,
         adminCount: list.filter((u) => u.role === "shop_admin").length,
         lastLoginAt,
+        operate: args.db.books[shop.id]?.operate ?? 0,
+        pendingAmount: holds.reduce((s, p) => s + p.amount + p.reservedFee, 0),
+        pendingCount: holds.length,
       };
     })
     .filter((row) => {
@@ -601,18 +738,6 @@ export function listLoginEvents(events: LoginEvent[], args: LoginEventFilter): L
     .sort((a, b) => b.at.getTime() - a.at.getTime());
 }
 
-export function passwordFailShops(events: LoginEvent[], min = 3): { merchantId: string; count: number }[] {
-  const counts = new Map<string, number>();
-  for (const e of events) {
-    if (e.result !== "failed" || e.stage !== "password" || !e.merchantId) continue;
-    counts.set(e.merchantId, (counts.get(e.merchantId) ?? 0) + 1);
-  }
-  return [...counts.entries()]
-    .filter(([, count]) => count >= min)
-    .map(([merchantId, count]) => ({ merchantId, count }))
-    .sort((a, b) => b.count - a.count);
-}
-
 const OPERATE_LOW = 50_000;
 
 export type ListInboxArgs = {
@@ -627,6 +752,43 @@ function batchAt(b: Batch): Date {
 
 function payoutAt(p: Payout): Date {
   return p.updatedAt ?? p.confirmedAt ?? p.createdAt;
+}
+
+function batchCode(id: string): string {
+  return id.replace(/^b-/, "");
+}
+
+function adminBatchFacts(b: Batch): string {
+  const parts = [
+    fmtDT(batchAt(b)),
+    `ชุด ${batchCode(b.id)}`,
+    `${b.itemCount} ใบ`,
+    `฿ ${money(b.totalAmount)}`,
+  ];
+  if (b.bankBulkOrderId) parts.push(`เลขออเดอร์ ${b.bankBulkOrderId}`);
+  if (b.packageRefNo) parts.push(`package ${b.packageRefNo}`);
+  if (b.failureReason) parts.push(b.failureReason);
+  return parts.join(" · ");
+}
+
+function adminBatchItem(
+  kind: "review" | "waiting" | "queue",
+  title: string,
+  tone: InboxTone,
+  b: Batch,
+): InboxItem {
+  return {
+    id: `${kind}-${b.id}`,
+    section: "live",
+    tone,
+    title,
+    detail: adminBatchFacts(b),
+    to: { path: `/payouts/batches/${b.id}` },
+  };
+}
+
+function byNewest(rows: Batch[]): Batch[] {
+  return rows.slice().sort((a, b) => batchAt(b).getTime() - batchAt(a).getTime());
 }
 
 function poolLowItem(db: MockDb, demo: HouseDemo): InboxItem | null {
@@ -664,69 +826,41 @@ function poolLowItem(db: MockDb, demo: HouseDemo): InboxItem | null {
     : twiceMin
       ? "ยอดบัญชีต้นทางใกล้เงินสำรอง"
       : "เพดานโอนวันนี้เหลือต่ำกว่า 20%";
-  const detail = `เหลือ ฿ ${money(source.bankBalance)}`;
+  const detail = [
+    fmtDT(source.bankBalanceAt),
+    `เหลือ ฿ ${money(source.bankBalance)}`,
+    `สำรอง ฿ ${money(source.minBalance)}`,
+    `เพดานวันนี้ ฿ ${money(source.dailyAmountUsed)} / ${money(source.dailyAmountCap)}`,
+  ].join(" · ");
   return { id: "pool-low", section: "live", tone: "alert", title, detail, to };
 }
 
 function adminLive(db: MockDb, demo: HouseDemo): InboxItem[] {
   const pending = db.batches.filter((b) => b.status === "PENDING");
-  const sending = db.batches.filter((b) => b.status === "SENDING");
-  const sent = db.batches.filter((b) => b.status === "SENT");
-  const waiting = sending.concat(sent);
-  const stuck = db.batches.filter((b) => b.stuck);
-  const needsReview = db.batches.filter((b) => b.status === "NEEDS_REVIEW");
+  const waiting = db.batches.filter((b) => (b.status === "SENDING" || b.status === "SENT") && !b.stuck);
   const reviewRows = db.batches.filter((b) => b.status === "NEEDS_REVIEW" || b.stuck);
   const live: InboxItem[] = [];
 
-  if (reviewRows.length) {
-    const title = stuck.length ? STUCK_BATCH_LABEL : "ชุดรอตรวจสอบ";
-    const detail = stuck.length && needsReview.length
-      ? `ค้าง ${stuck.length} · รอตรวจสอบ ${needsReview.length}`
-      : `${reviewRows.length} ชุด`;
-    live.push({
-      id: "review",
-      section: "live",
-      tone: "alert",
-      title,
-      detail,
-      to: {
-        path: "/payouts/batches",
-        list: stuck.length ? { batchStuck: true } : { batchStatus: "NEEDS_REVIEW" },
-      },
-    });
+  for (const b of byNewest(reviewRows)) {
+    live.push(
+      adminBatchItem(
+        "review",
+        b.stuck ? STUCK_BATCH_LABEL : "ชุดรอตรวจสอบ",
+        "alert",
+        b,
+      ),
+    );
   }
 
   const pool = poolLowItem(db, demo);
   if (pool) live.push(pool);
 
-  if (waiting.length) {
-    const list = stuck.length
-      ? { batchStuck: true }
-      : sending.length
-        ? { batchStatus: "SENDING" }
-        : { batchStatus: "SENT" };
-    live.push({
-      id: "waiting",
-      section: "live",
-      tone: stuck.length ? "warn" : "default",
-      title: "ชุดรอธนาคาร",
-      detail: `${waiting.length} ชุด`,
-      to: { path: "/payouts/batches", list },
-    });
+  for (const b of byNewest(waiting)) {
+    live.push(adminBatchItem("waiting", "ชุดรอธนาคาร", "default", b));
   }
 
-  if (pending.length) {
-    live.push({
-      id: "queue",
-      section: "live",
-      tone: "default",
-      title: "ชุดรอส่ง",
-      detail: `${pending.length} ชุด`,
-      to: {
-        path: "/payouts/batches",
-        list: { batchStatus: "PENDING", batchStuck: false },
-      },
-    });
+  for (const b of byNewest(pending)) {
+    live.push(adminBatchItem("queue", "ชุดรอส่ง", "default", b));
   }
   return live;
 }
@@ -795,7 +929,7 @@ function adminRecent(db: MockDb): InboxItem[] {
         section: "recent" as const,
         tone: (failed ? "alert" : "default") as InboxTone,
         title: failed ? "ชุดโอนไม่สำเร็จ" : "ชุดโอนสำเร็จ",
-        detail: `${b.id} · ฿ ${money(b.totalAmount)}`,
+        detail: adminBatchFacts(b),
         to: { path: `/payouts/batches/${b.id}` },
         at: batchAt(b),
       };

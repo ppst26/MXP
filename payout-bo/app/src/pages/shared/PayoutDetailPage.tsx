@@ -1,9 +1,9 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { db } from "../mock/seed";
-import { subtreeIds } from "../mock/query";
-import { useFilters } from "../state/FilterProvider";
-import { useScopedMerchantId, useViewer } from "../state/use-viewer";
-import { PayoutDetailView } from "../features/payouts/PayoutDetailView";
+import { db } from "../../mock/seed";
+import { subtreeIds } from "../../mock/query";
+import { useFilters } from "../../state/FilterProvider";
+import { useScopedMerchantId, useViewer } from "../../state/use-viewer";
+import { PayoutDetailView } from "../../features/payouts/PayoutDetailView";
 import { DetailPageHeader, DetailPageShell } from "@/components/page-back-link";
 
 export function PayoutDetailPage() {

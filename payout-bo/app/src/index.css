@@ -88,13 +88,52 @@
     --success: #27a644;
     --warning: #c9a227;
     --review: #a78bfa;
-    --control-bg: color-mix(in oklab, var(--input) 30%, transparent);
-    --control-bg-hover: color-mix(in oklab, var(--input) 50%, transparent);
+    --control-bg: color-mix(in oklab, var(--input) 80%, transparent);
+    --control-bg-hover: var(--input);
+}
+
+/* สกอร์ลบาร์บาง ไม่มีแทร็กขาว ไม่มีลูกศรขึ้น/ลง — ใช้กับทุก overflow */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--foreground) 28%, transparent) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: color-mix(in oklab, var(--foreground) 28%, transparent);
+  background-clip: content-box;
+  border: 2px solid transparent;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in oklab, var(--foreground) 45%, transparent);
+}
+
+::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 /* สเกลตัวอักษรผลิตภัณฑ์ — 8 บทบาท ใช้ผ่าน class ไม่ใส่ text-[Npx] กระจาย */
 @utility page-title {
   @apply font-heading text-xl font-semibold tracking-tight;
+}
+@utility page-header {
+  @apply flex flex-col gap-2 pb-2;
+}
+@utility page-description {
+  @apply text-sm leading-relaxed text-muted-foreground;
 }
 @utility type-display {
   font-size: 2rem;
@@ -108,6 +147,13 @@
   font-weight: 600;
   line-height: 1;
   letter-spacing: -0.055em;
+  font-variant-numeric: tabular-nums;
+}
+@utility type-hero-withdraw {
+  font-size: clamp(3rem, 5vw, 4rem);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.06em;
   font-variant-numeric: tabular-nums;
 }
 @utility type-kpi {
@@ -157,8 +203,8 @@
 @layer components {
   .surface {
     isolation: isolate;
-    --control-bg: #010102;
-    --control-bg-hover: #010102;
+    --control-bg: color-mix(in oklab, var(--input) 80%, transparent);
+    --control-bg-hover: var(--input);
     --surface-rim: rgb(255 255 255 / 0.14);
     background-color: #121314;
     background-image: linear-gradient(

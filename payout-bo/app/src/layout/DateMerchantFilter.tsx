@@ -34,11 +34,12 @@ const PRESETS: [DatePreset, string][] = [
   ["d7", "7 วัน"],
   ["d14", "14 วัน"],
   ["d30", "ทั้งเดือน"],
+  ["d90", "3 เดือน"],
 ];
 
 function FilterField({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-2">
       <Label className="type-label">{label}</Label>
       {children}
     </div>

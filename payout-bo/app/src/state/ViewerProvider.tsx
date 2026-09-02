@@ -14,17 +14,21 @@ const demoOff: HouseDemo = {
 
 export function ViewerProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<Role>("admin");
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
   const [demo, setDemoState] = useState<HouseDemo>(demoOff);
   const value = useMemo<ViewerContextValue>(
     () => ({
       role,
       isAdmin: role === "admin",
+      isAuthenticated,
       demo,
       scopedMerchantId: role === "merchant" ? MOCK_DIRECT_USER : "",
       setRole,
       setDemo: (patch) => setDemoState((d) => ({ ...d, ...patch })),
+      login: () => setIsAuthenticated(true),
+      logout: () => setIsAuthenticated(false),
     }),
-    [role, demo],
+    [role, isAuthenticated, demo],
   );
   return <ViewerContext.Provider value={value}>{children}</ViewerContext.Provider>;
 }

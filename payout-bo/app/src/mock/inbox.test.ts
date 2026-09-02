@@ -93,12 +93,14 @@ describe("listInbox admin live", () => {
       { isAdmin: true, merchantId: "", demo: demoOff },
       [],
     );
-    expect(inbox.live.map((i) => i.id)).toEqual(["review", "pool-low", "waiting", "queue"]);
+    expect(inbox.live.map((i) => i.id)).toEqual(["review-b-r", "pool-low", "waiting-b-w", "queue-b-q"]);
     expect(inbox.badgeCount).toBe(4);
-    expect(inbox.live.find((i) => i.id === "queue")?.to).toEqual({
-      path: "/payouts/batches",
-      list: { batchStatus: "PENDING", batchStuck: false },
+    expect(inbox.live.find((i) => i.id === "queue-b-q")?.to).toEqual({
+      path: "/payouts/batches/b-q",
     });
+    expect(inbox.live.find((i) => i.id === "review-b-r")?.title).toBe("ชุดรอตรวจสอบ");
+    expect(inbox.live.find((i) => i.id === "waiting-b-w")?.title).toBe("ชุดรอธนาคาร");
+    expect(inbox.live.find((i) => i.id === "queue-b-q")?.title).toBe("ชุดรอส่ง");
   });
 
   it("uses stuck click target for waiting when a batch is stuck", () => {
@@ -109,12 +111,11 @@ describe("listInbox admin live", () => {
       { isAdmin: true, merchantId: "", demo: demoOff },
       [],
     );
-    const waiting = inbox.live.find((i) => i.id === "waiting");
-    expect(waiting?.tone).toBe("warn");
-    expect(waiting?.to.list).toEqual({ batchStuck: true });
-    const review = inbox.live.find((i) => i.id === "review");
+    const review = inbox.live.find((i) => i.id === "review-b-s");
+    expect(review?.tone).toBe("alert");
     expect(review?.title).toContain("ส่งแล้วรอธนาคารนาน");
-    expect(review?.to.list).toEqual({ batchStuck: true });
+    expect(review?.to.path).toBe("/payouts/batches/b-s");
+    expect(inbox.live.some((i) => i.id.startsWith("waiting-"))).toBe(false);
   });
 
   it("shows no-source as pool-low", () => {
@@ -235,6 +236,47 @@ describe("listInbox admin recent", () => {
     );
     expect(inbox.recent.map((i) => i.id)).toEqual(["batch-b-fail", "batch-b-ok"]);
     expect(inbox.recent[0]?.to.path).toBe("/payouts/batches/b-fail");
+    expect(inbox.recent[0]?.detail).toContain("2026-08-31 16:00:00");
+    expect(inbox.recent[0]?.detail).toContain("ชุด fail");
+    expect(inbox.recent[0]?.detail).toContain("1 ใบ");
+    expect(inbox.recent[1]?.detail).toContain("฿ 2,000.00");
+  });
+
+  it("puts date shop count and amount on live batch details", () => {
+    const inbox = listInbox(
+      makeDb({
+        payouts: [
+          payout({
+            referenceId: "p1",
+            status: "PENDING",
+            batchId: "b-q",
+            merchantId: "m-acme",
+            merchantName: "Acme",
+            merchantCode: "ACME",
+            amount: 1000,
+          }),
+        ],
+        batches: [
+          batch({
+            id: "b-q",
+            status: "PENDING",
+            itemCount: 1,
+            totalAmount: 1000,
+            itemRefs: ["p1"],
+            createdAt: new Date("2026-08-31T16:29:00+07:00"),
+          }),
+        ],
+      }),
+      { isAdmin: true, merchantId: "", demo: demoOff },
+      [],
+    );
+    const queue = inbox.live.find((i) => i.id === "queue-b-q");
+    expect(queue?.title).toBe("ชุดรอส่ง");
+    expect(queue?.detail).toContain("2026-08-31 16:29:00");
+    expect(queue?.detail).toContain("ชุด q");
+    expect(queue?.detail).not.toContain("ร้าน");
+    expect(queue?.detail).toContain("1 ใบ");
+    expect(queue?.detail).toContain("฿ 1,000.00");
   });
 });
 

@@ -22,13 +22,13 @@ function InboxRow({ item, onPick }: { item: InboxItem; onPick: (item: InboxItem)
       type="button"
       onClick={() => onPick(item)}
       className={cn(
-        "flex w-full flex-col items-start rounded-md px-2 py-1.5 text-left hover:bg-muted",
+        "flex w-full flex-col items-start gap-1 rounded-sm border border-foreground/10 px-3 py-2 text-left hover:bg-muted",
         item.tone === "alert" && "text-destructive",
         item.tone === "warn" && "text-warning",
       )}
     >
       <span className="text-sm font-medium">{item.title}</span>
-      {item.detail ? <span className="text-xs text-muted-foreground">{item.detail}</span> : null}
+      {item.detail ? <span className="text-xs whitespace-pre-line text-muted-foreground">{item.detail}</span> : null}
     </button>
   );
 }
@@ -86,25 +86,25 @@ export function NotificationBell() {
           ) : null}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-80 p-2">
-        <PopoverHeader className="px-2 py-1">
+      <PopoverContent align="end" className="w-[32rem] max-w-[calc(100vw-2rem)] p-2">
+        <PopoverHeader className="border-b border-border px-2 pb-2">
           <PopoverTitle>แจ้งเตือน</PopoverTitle>
         </PopoverHeader>
         {empty ? (
           <p className="px-2 py-3 text-sm text-muted-foreground">ไม่มีเรื่องที่ต้องลงมือตอนนี้</p>
         ) : (
-          <div className="flex max-h-96 flex-col gap-2 overflow-y-auto">
+          <div className="flex max-h-96 flex-col gap-2 overflow-y-auto pt-1">
             {inbox.live.length ? (
-              <div>
-                <p className="px-2 pb-1 text-xs text-muted-foreground">ต้องลงมือ</p>
+              <div className="flex flex-col gap-2">
+                <p className="px-1 text-xs text-muted-foreground">ต้องลงมือ</p>
                 {inbox.live.map((item) => (
                   <InboxRow key={item.id} item={item} onPick={onPick} />
                 ))}
               </div>
             ) : null}
             {inbox.recent.length ? (
-              <div>
-                <p className="px-2 pb-1 text-xs text-muted-foreground">ล่าสุด</p>
+              <div className="flex flex-col gap-2">
+                <p className="px-1 text-xs text-muted-foreground">ล่าสุด</p>
                 {inbox.recent.map((item) => (
                   <InboxRow key={item.id} item={item} onPick={onPick} />
                 ))}

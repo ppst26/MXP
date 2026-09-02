@@ -18,7 +18,7 @@ import {
 
 function Field({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
   return (
-    <div className={className ?? "flex flex-col gap-1"}>
+    <div className={className ?? "flex flex-col gap-2"}>
       <Label className="type-label">{label}</Label>
       {children}
     </div>
@@ -58,7 +58,7 @@ export function PayoutFilterBar() {
               </Button>
             </Field>
           ) : null}
-          <Field label="อ้างอิง / ออเดอร์ร้าน" className="flex min-w-[200px] flex-1 flex-col gap-1 sm:max-w-xs">
+          <Field label="อ้างอิง / ออเดอร์ร้าน" className="flex min-w-[200px] flex-1 flex-col gap-2 sm:max-w-xs">
             <Input
               className="h-8"
               value={filters.q}
@@ -66,14 +66,14 @@ export function PayoutFilterBar() {
               onChange={(e) => setFilters({ q: e.target.value, listPage: 1 })}
             />
           </Field>
-          <Field label="เลขบัญชีผู้รับ" className="flex w-full flex-col gap-1 sm:w-40">
+          <Field label="เลขบัญชีผู้รับ" className="flex w-full flex-col gap-2 sm:w-40">
             <Input
               className="h-8"
               value={filters.recipientAccount}
               onChange={(e) => setFilters({ recipientAccount: e.target.value, listPage: 1 })}
             />
           </Field>
-          <Field label="ชื่อไม่ตรง" className="flex flex-col gap-1">
+          <Field label="ชื่อไม่ตรง" className="flex flex-col gap-2">
             <Select
               value={filters.nameMismatch ? "1" : "all"}
               onValueChange={(v) => setFilters({ nameMismatch: v === "1", listPage: 1 })}
@@ -91,8 +91,8 @@ export function PayoutFilterBar() {
           </Field>
         </div>
 
-        <div className="border-t border-border/80 pt-3">
-          <p className="type-label mb-2">สถานะใบ · เลือกได้หลายค่า</p>
+        <div className="flex flex-col gap-2 border-t border-border/80 pt-3">
+          <p className="type-label">สถานะใบ · เลือกได้หลายค่า</p>
           <div className="flex flex-wrap gap-x-4 gap-y-2">
             {PAYOUT_STATUSES.map((s) => (
               <label key={s} className="flex cursor-pointer items-center gap-2 text-xs text-foreground/90">

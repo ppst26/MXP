@@ -587,6 +587,10 @@ function MerchantBankFeeCard({
   );
 }
 
+export type PeriodPayoutPatch = {
+  recipientBankCode?: string;
+};
+
 export function ComparePairs({
   rows,
   ts,
@@ -605,7 +609,7 @@ export function ComparePairs({
   pm: ReturnType<typeof metrics>;
   showHouse: boolean;
   grain: "hour" | "day";
-  onGoPayouts: (patch: { recipientBankCode?: string }) => void;
+  onGoPayouts: (patch: PeriodPayoutPatch) => void;
   onPickMerchant?: (merchantId: string) => void;
 }) {
   return (
@@ -614,20 +618,24 @@ export function ComparePairs({
         <CompletedAmountChart ts={ts} grain={grain} />
         <CompletedCountChart ts={ts} grain={grain} showBatches={showHouse} />
       </div>
-      <div className="grid gap-3 lg:grid-cols-2">
-        <MerchantMdrCard rows={rows} onPick={onPickMerchant} />
-        {showHouse ? <MerchantBankFeeCard rows={rows} onPick={onPickMerchant} /> : null}
-      </div>
-      <div className="grid gap-3 lg:grid-cols-3">
-        <Card size="sm">
-          <CardHeader>
-            <CardTitle>ในธนาคาร vs ข้ามธนาคาร</CardTitle>
-            <CardDescription>คู่ 2 — ประสิทธิภาพเส้นทาง</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <RoutePerformanceBars rows={rows} showHouse={showHouse} />
-          </CardContent>
-        </Card>
+      {showHouse ? (
+        <div className="grid gap-3 lg:grid-cols-2">
+          <MerchantMdrCard rows={rows} onPick={onPickMerchant} />
+          <MerchantBankFeeCard rows={rows} onPick={onPickMerchant} />
+        </div>
+      ) : null}
+      <div className={showHouse ? "grid gap-3 lg:grid-cols-3" : "grid gap-3 lg:grid-cols-2"}>
+        {showHouse ? (
+          <Card size="sm">
+            <CardHeader>
+              <CardTitle>ในธนาคาร vs ข้ามธนาคาร</CardTitle>
+              <CardDescription>คู่ 2 — ประสิทธิภาพเส้นทาง</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <RoutePerformanceBars rows={rows} showHouse={showHouse} />
+            </CardContent>
+          </Card>
+        ) : null}
         <Card size="sm">
           <CardHeader>
             <CardTitle>ธนาคารที่โอนไป</CardTitle>

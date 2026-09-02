@@ -1,6 +1,9 @@
 import { useMemo, useState } from "react";
 import type { MerchantWatchRow } from "../../mock/types";
 import { money } from "../../lib/money";
+import { SortableTh } from "@/components/sortable-table-head";
+import { TablePagination } from "@/components/table-pagination";
+import { useSortedPagination } from "@/hooks/use-sorted-pagination";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -60,7 +63,7 @@ function NumCell({ value, tone }: { value: number; tone?: "default" | "warn" | "
   return (
     <span
       className={cn(
-        "tabular-nums",
+        "text-base font-semibold tabular-nums",
         tone === "warn" && value > 0 && "text-warning",
         tone === "alert" && value > 0 && "text-destructive",
       )}
@@ -69,6 +72,18 @@ function NumCell({ value, tone }: { value: number; tone?: "default" | "warn" | "
     </span>
   );
 }
+
+const watchAccessors = {
+  name: (x: MerchantWatchRow) => x.name,
+  completedAmount: (x: MerchantWatchRow) => x.completedAmount,
+  failed: (x: MerchantWatchRow) => x.failed,
+  review: (x: MerchantWatchRow) => x.review,
+  pending: (x: MerchantWatchRow) => x.pending,
+  held: (x: MerchantWatchRow) => x.held,
+  oldestMin: (x: MerchantWatchRow) => x.oldestMin ?? -1,
+  alertScore: (x: MerchantWatchRow) => x.alertScore,
+  status: (x: MerchantWatchRow) => rowStatus(x).label,
+};
 
 export function MerchantWatch({
   rows,
@@ -85,6 +100,19 @@ export function MerchantWatch({
     if (!needle) return rows;
     return rows.filter((x) => x.name.toLowerCase().includes(needle) || x.code.toLowerCase().includes(needle));
   }, [rows, q]);
+
+  const {
+    slice,
+    page,
+    pages,
+    total,
+    pageSize,
+    setPage,
+    setPageSize,
+    sortKey,
+    sortDir,
+    requestSort,
+  } = useSortedPagination(filtered, watchAccessors, `watch-${q}`);
 
   if (rows === null) {
     return (
@@ -120,19 +148,19 @@ export function MerchantWatch({
           <table className="data-table w-full text-xs">
             <thead>
               <tr className="border-b border-border">
-                <th className="px-4 py-2 text-left type-micro font-semibold uppercase tracking-wide">ร้าน</th>
-                <th className="num px-4 py-2 type-micro font-semibold uppercase tracking-wide">สำเร็จช่วงนี้</th>
-                <th className="num px-4 py-2 type-micro font-semibold uppercase tracking-wide">ล้ม</th>
-                <th className="num px-4 py-2 type-micro font-semibold uppercase tracking-wide">รอคนดู</th>
-                <th className="num px-4 py-2 type-micro font-semibold uppercase tracking-wide">รอส่ง</th>
-                <th className="num px-4 py-2 type-micro font-semibold uppercase tracking-wide">กันไว้</th>
-                <th className="num px-4 py-2 type-micro font-semibold uppercase tracking-wide">เก่าสุด</th>
-                <th className="px-4 py-2 type-micro font-semibold uppercase tracking-wide">ความเสี่ยง</th>
-                <th className="px-4 py-2 type-micro font-semibold uppercase tracking-wide">สถานะ</th>
+                <SortableTh label="ร้าน" sortKey="name" activeKey={sortKey} direction={sortDir} onSort={requestSort} className="px-4 py-2 text-left" />
+                <SortableTh label="สำเร็จช่วงนี้" sortKey="completedAmount" activeKey={sortKey} direction={sortDir} onSort={requestSort} className="num px-4 py-2" />
+                <SortableTh label="ล้ม" sortKey="failed" activeKey={sortKey} direction={sortDir} onSort={requestSort} className="num px-4 py-2" />
+                <SortableTh label="รอคนดู" sortKey="review" activeKey={sortKey} direction={sortDir} onSort={requestSort} className="num px-4 py-2" />
+                <SortableTh label="รอส่ง" sortKey="pending" activeKey={sortKey} direction={sortDir} onSort={requestSort} className="num px-4 py-2" />
+                <SortableTh label="กันไว้" sortKey="held" activeKey={sortKey} direction={sortDir} onSort={requestSort} className="num px-4 py-2" />
+                <SortableTh label="เก่าสุด" sortKey="oldestMin" activeKey={sortKey} direction={sortDir} onSort={requestSort} className="num px-4 py-2" />
+                <SortableTh label="ความเสี่ยง" sortKey="alertScore" activeKey={sortKey} direction={sortDir} onSort={requestSort} className="px-4 py-2" />
+                <SortableTh label="สถานะ" sortKey="status" activeKey={sortKey} direction={sortDir} onSort={requestSort} className="px-4 py-2" />
               </tr>
             </thead>
             <tbody>
-              {filtered.map((x) => {
+              {slice.map((x) => {
                 const status = rowStatus(x);
                 return (
                   <tr key={x.id} className="hover" onClick={() => onPick(x.id)}>
@@ -141,7 +169,7 @@ export function MerchantWatch({
                       <span className="type-micro block">{x.code}</span>
                     </td>
                     <td className="num px-4 py-3 align-top">
-                      <span className="block tabular-nums text-foreground">{money(x.completedAmount)}</span>
+                      <span className="block text-base font-semibold tabular-nums text-foreground">{money(x.completedAmount)}</span>
                       <span className="type-micro block">{x.completedCount} รายการ</span>
                     </td>
                     <td className="num px-4 py-3 align-top">
@@ -169,6 +197,16 @@ export function MerchantWatch({
               })}
             </tbody>
           </table>
+        </div>
+        <div className="border-t border-border px-4 py-3">
+          <TablePagination
+            page={page}
+            pages={pages}
+            pageSize={pageSize}
+            total={total}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
         </div>
         <p className="type-label border-t border-border px-4 py-2">
           คลิกแถวกรองร้านนี้บนภาพรวม · ไม่ใช่จอร้าน · สูงสุด 8 แถว

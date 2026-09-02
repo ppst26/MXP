@@ -41,11 +41,29 @@ function Panel({
   );
 }
 
-function InfoLine({ label, children, mono }: { label: string; children: ReactNode; mono?: boolean }) {
+function InfoLine({
+  label,
+  children,
+  mono,
+  size = "default",
+}: {
+  label: string;
+  children: ReactNode;
+  mono?: boolean;
+  size?: "default" | "lg";
+}) {
+  const large = size === "lg";
   return (
-    <div className="py-1.5">
-      <div className="type-micro">{label}</div>
-      <div className={cn("mt-0.5 text-xs text-foreground/90", mono && "type-label font-mono")}>{children}</div>
+    <div className={large ? "py-2.5" : "py-1.5"}>
+      <div className={large ? "text-sm text-muted-foreground" : "type-micro"}>{label}</div>
+      <div
+        className={cn(
+          large ? "mt-1 text-base leading-snug text-foreground" : "mt-0.5 text-xs text-foreground/90",
+          mono && (large ? "font-mono tabular-nums" : "type-label font-mono"),
+        )}
+      >
+        {children}
+      </div>
     </div>
   );
 }
@@ -109,8 +127,8 @@ export function PayoutDetailView({ payout: p, batch: b, isAdmin, onFilterBatch }
           </span>
         }
       >
-        <div className="type-label">รายละเอียดใบถอน</div>
-        <div className="type-section mt-0.5 font-mono font-normal text-foreground/85">
+        <div className="text-sm font-semibold text-muted-foreground">รายละเอียดใบถอน</div>
+        <div className="mt-1 font-mono text-lg font-semibold tracking-tight text-foreground">
           {p.referenceId} · {p.transactionId}
         </div>
         <div className="type-display mt-2.5">฿ {money(p.amount)}</div>
@@ -123,39 +141,33 @@ export function PayoutDetailView({ payout: p, batch: b, isAdmin, onFilterBatch }
         <div className="flex min-w-0 flex-col gap-3.5">
           <Panel headless title="ผู้รับ">
             <div className="px-5 pt-5">
-              <div className="flex items-center gap-3 border-b border-border pb-5">
-                <div className="type-label grid size-10 place-items-center rounded-lg bg-muted font-bold text-foreground">
+              <div className="flex items-center gap-3.5 border-b border-border pb-5">
+                <div className="grid size-12 shrink-0 place-items-center rounded-lg bg-muted text-sm font-bold text-foreground">
                   {p.recipientBankCode.slice(0, 3)}
                 </div>
                 <div className="min-w-0">
-                  <div className="type-section">{p.recipientName}</div>
-                  <div className="mt-0.5 font-mono text-xs text-foreground/85">{p.recipientAccountNo}</div>
-                  {p.nameMismatch ? (
-                    <span className="type-label mt-1 inline-flex items-center gap-1 text-warning">
-                      <span className="size-1 rounded-full bg-current" />
-                      nameMismatch
-                    </span>
-                  ) : null}
+                  <div className="text-xl font-semibold tracking-tight">{p.recipientName}</div>
+                  <div className="mt-1 font-mono text-sm text-foreground/90">{p.recipientAccountNo}</div>
                 </div>
               </div>
-              <div className="grid grid-cols-1 gap-x-5 sm:grid-cols-2">
-                <InfoLine label="ธนาคาร">{p.recipientBankName} · {p.recipientBankCode}</InfoLine>
-                <InfoLine label="เส้นทาง">{routeLabel(p.route)}</InfoLine>
-                <InfoLine label="ชื่อที่ร้านส่ง">{p.recipientName}</InfoLine>
-                <InfoLine label="ชื่อที่ธนาคารตอบ">{p.accountToName || "—"}</InfoLine>
-                {p.recipientPhone ? <InfoLine label="เบอร์">{p.recipientPhone}</InfoLine> : null}
+              <div className="grid grid-cols-1 gap-x-8 sm:grid-cols-2">
+                <InfoLine size="lg" label="ธนาคาร">{p.recipientBankName} · {p.recipientBankCode}</InfoLine>
+                <InfoLine size="lg" label="เส้นทาง">{routeLabel(p.route)}</InfoLine>
+                <InfoLine size="lg" label="ชื่อที่ร้านส่ง">{p.recipientName}</InfoLine>
+                <InfoLine size="lg" label="ชื่อที่ธนาคารตอบ">{p.accountToName || "—"}</InfoLine>
+                {p.recipientPhone ? <InfoLine size="lg" label="เบอร์">{p.recipientPhone}</InfoLine> : null}
               </div>
             </div>
-            <div className="mt-4 grid grid-cols-1 border-t border-border sm:grid-cols-2">
-              <div className="border-border px-5 py-3.5 sm:border-r">
-                <div className="type-micro">ยอดโอน</div>
-                <div className="type-kpi mt-0.5">{money4(p.amount)}</div>
-                <div className="type-micro mt-0.5">ค่าบริการร้าน {money4(p.reservedFee)}</div>
+            <div className="mt-2 grid grid-cols-1 border-t border-border sm:grid-cols-2">
+              <div className="border-border px-5 py-4 sm:border-r">
+                <div className="text-sm text-muted-foreground">ยอดโอน</div>
+                <div className="type-kpi mt-1">{money4(p.amount)}</div>
+                <div className="mt-1 text-sm text-muted-foreground">ค่าบริการร้าน {money4(p.reservedFee)}</div>
               </div>
               {isAdmin ? (
-                <div className="border-t border-border px-5 py-3.5 sm:border-t-0">
-                  <div className="type-micro">ค่าโอนธนาคาร</div>
-                  <div className="type-kpi mt-0.5">{bankFee}</div>
+                <div className="border-t border-border px-5 py-4 sm:border-t-0">
+                  <div className="text-sm text-muted-foreground">ค่าโอนธนาคาร</div>
+                  <div className="type-kpi mt-1">{bankFee}</div>
                 </div>
               ) : null}
             </div>

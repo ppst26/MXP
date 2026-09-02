@@ -7,6 +7,7 @@ import { NOW } from "../../lib/bangkok";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
 import { STUCK_BATCH_LABEL, StuckBatchHeading } from "../batches/StuckBatchHeading";
+import { FocusRow } from "./FocusRow";
 import { cn } from "@/lib/utils";
 
 type DotTone = "ok" | "warn" | "bad";
@@ -49,58 +50,7 @@ function eyebrowTone(source: SourceAccount): DotTone {
   return accountTone(source);
 }
 
-function FocusRow({
-  title,
-  sub,
-  count,
-  tone = "default",
-  icon,
-  onClick,
-}: {
-  title: string;
-  sub: string;
-  count: ReactNode;
-  tone?: "default" | "warn" | "alert" | "quiet";
-  icon: ReactNode;
-  onClick?: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "surface-nested grid w-full grid-cols-[auto_1fr_auto] items-center gap-2.5 rounded-sm border border-foreground/10 p-2.5 text-left transition-colors hover:bg-foreground/3",
-        onClick && "cursor-pointer",
-      )}
-    >
-      <span
-        className={cn(
-          "flex size-7 items-center justify-center rounded-md bg-muted text-foreground/90",
-          tone === "warn" && "bg-warning/10 text-warning",
-          tone === "alert" && "bg-destructive/10 text-destructive",
-          tone === "quiet" && "text-muted-foreground",
-        )}
-      >
-        {icon}
-      </span>
-      <span className="min-w-0">
-        <span className={cn("block text-xs text-foreground/90", tone === "quiet" && "text-muted-foreground")}>{title}</span>
-        <span className="type-label block truncate">{sub}</span>
-      </span>
-      <span className={cn("text-sm font-semibold tabular-nums tracking-tight", tone === "quiet" && "text-muted-foreground")}>{count}</span>
-    </button>
-  );
-}
-
-function SourceHeroLeft({
-  source,
-  held,
-  openCount,
-}: {
-  source: SourceAccount | null;
-  held: number;
-  openCount: number;
-}) {
+function SourceHeroLeft({ source }: { source: SourceAccount | null }) {
   if (!source) {
     return (
       <div className="flex flex-col gap-3 p-6">
@@ -118,15 +68,22 @@ function SourceHeroLeft({
   const stale = NOW.getTime() - source.bankBalanceAt.getTime() > BALANCE_MAX_AGE_MS;
   const ageMin = Math.round((NOW.getTime() - source.bankBalanceAt.getTime()) / 60000);
   const lowBalance = source.bankBalance < source.minBalance;
-  const amountFull = source.dailyAmountCap > 0 && source.dailyAmountUsed >= source.dailyAmountCap;
-  const txnFull = source.dailyTxnCap > 0 && source.dailyTxnUsed >= source.dailyTxnCap;
 
   return (
     <div className="flex h-full min-h-0 flex-col p-6">
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <div className="type-section inline-flex items-center gap-2 text-muted-foreground">
-          <StatusDot tone={eyebrowTone(source)} pulse={eyebrowTone(source) === "ok"} />
-          บัญชีต้นทางพร้อมโอน
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+        <div className="min-w-0">
+          <div className="type-section inline-flex items-center gap-2 text-muted-foreground">
+            <StatusDot tone={eyebrowTone(source)} pulse={eyebrowTone(source) === "ok"} />
+            บัญชีต้นทางพร้อมโอน
+          </div>
+          <div className="type-label mt-1">
+            {stale ? (
+              <span className="text-warning">เก่า {ageMin} น. ห้ามอ่านว่าพอจ่าย</span>
+            ) : (
+              <span>รีเฟรช {ageMin} นาทีที่แล้ว</span>
+            )}
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <StatusItem label="รับคำสั่ง" tone={source.payoutEnabled ? "ok" : "bad"} />
@@ -137,17 +94,9 @@ function SourceHeroLeft({
 
       <div className="mt-3 flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
         <div className="min-w-0">
-          <div className="text-xs text-muted-foreground">
-            {source.bankName} · {source.accountNo}
-          </div>
-          <div className="type-label mt-1 space-y-0.5">
-            <div>
-              {stale ? (
-                <span className="text-warning">เก่า {ageMin} น. ห้ามอ่านว่าพอจ่าย</span>
-              ) : (
-                <span>รีเฟรช {ageMin} นาทีที่แล้ว</span>
-              )}
-            </div>
+          <p className="text-2xl">{source.bankName}</p>
+          <p className="type-display mt-1.5 tracking-tight">{source.accountNo}</p>
+          <div className="type-label mt-2 space-y-0.5">
             {source.tier !== "OUTBOUND" ? (
               <div className="text-warning">tier {source.tier} · เตือน: ไม่ใช่ OUTBOUND</div>
             ) : null}
@@ -162,36 +111,77 @@ function SourceHeroLeft({
           <div className="mt-1.5 text-xs text-muted-foreground">{source.accountName}</div>
         </div>
       </div>
+    </div>
+  );
+}
 
-      <div className="mt-4 grid flex-1 grid-cols-3 divide-x divide-border border-t border-border pt-4 content-start">
-        <div className="flex flex-col gap-1.5 pr-4">
-          <div className="type-stat-label">คิวที่กันไว้</div>
-          <div className="type-stat-value">฿ {money(held)}</div>
-          <div className="type-label leading-snug">
-            {openCount} รายการที่ยังไม่จบ · PENDING + PROCESSING
-          </div>
-        </div>
-        <div className="flex flex-col gap-1.5 px-4">
-          <div className="type-stat-label">เพดานโอนวันนี้</div>
-          <div className={cn("type-stat-value", amountFull && "text-destructive")}>
+function SourceStatCard({
+  label,
+  value,
+  hint,
+  danger,
+}: {
+  label: string;
+  value: ReactNode;
+  hint: ReactNode;
+  danger?: boolean;
+}) {
+  return (
+    <Card size="sm" className="h-full min-w-0">
+      <div className="flex h-full flex-col gap-1.5 px-4 py-3">
+        <div className="type-stat-label">{label}</div>
+        <div className={cn("type-stat-value", danger && "text-destructive")}>{value}</div>
+        <div className="type-label leading-snug">{hint}</div>
+      </div>
+    </Card>
+  );
+}
+
+function SourceStatRow({
+  source,
+  held,
+  openCount,
+}: {
+  source: SourceAccount | null;
+  held: number;
+  openCount: number;
+}) {
+  if (!source) return null;
+  const amountFull = source.dailyAmountCap > 0 && source.dailyAmountUsed >= source.dailyAmountCap;
+  const txnFull = source.dailyTxnCap > 0 && source.dailyTxnUsed >= source.dailyTxnCap;
+  return (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <SourceStatCard
+        label="คิวที่กันไว้"
+        value={`฿ ${money(held)}`}
+        hint={`${openCount} รายการที่ยังไม่จบ · PENDING + PROCESSING`}
+      />
+      <SourceStatCard
+        label="เพดานโอนวันนี้"
+        value={
+          <>
             ฿ {money(source.dailyAmountUsed)}
             <span className="ml-1 text-sm font-medium tracking-normal text-muted-foreground">
               / ฿ {money(source.dailyAmountCap)}
             </span>
-          </div>
-          <div className="type-label leading-snug">สำรอง {money(source.minBalance)}</div>
-        </div>
-        <div className="flex flex-col gap-1.5 pl-4">
-          <div className="type-stat-label">เพดานรายการ</div>
-          <div className={cn("type-stat-value", txnFull && "text-destructive")}>
+          </>
+        }
+        hint={`สำรอง ${money(source.minBalance)}`}
+        danger={amountFull}
+      />
+      <SourceStatCard
+        label="เพดานรายการ"
+        value={
+          <>
             {source.dailyTxnUsed}
             <span className="ml-1 text-sm font-medium tracking-normal text-muted-foreground">
               / {source.dailyTxnCap}
             </span>
-          </div>
-          <div className="type-label leading-snug">ใบที่ส่งวันนี้</div>
-        </div>
-      </div>
+          </>
+        }
+        hint="ใบที่ส่งวันนี้"
+        danger={txnFull}
+      />
     </div>
   );
 }
@@ -257,7 +247,7 @@ function PayoutFocusList({
   const pendingSub = money(sumAmt(pending)) + (oldest ? ` · เก่าสุด ${oldestMin} น.` : " · ไม่มีใบค้าง");
 
   return (
-    <div className="grid gap-2">
+    <div className="grid h-full min-h-0 grid-rows-4 gap-2">
       <FocusRow
         title="รอส่งเข้าธนาคาร"
         sub={pendingSub}
@@ -318,7 +308,7 @@ function BatchFocusList({
   const items = open.reduce((s, b) => s + b.itemCount, 0);
 
   return (
-    <div className="grid gap-2">
+    <div className="grid h-full min-h-0 flex-1 grid-rows-3 gap-2">
       <FocusRow
         title="ชุดรอส่ง"
         sub={open.length ? `${items} ใบในชุด` : "ไม่มี"}
@@ -373,8 +363,8 @@ function FollowUpHeroRight({
   const followTone: DotTone = stuckCount ? "bad" : needsLook.length ? "warn" : "ok";
 
   return (
-    <div className="flex h-full flex-col p-4">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <div className="flex min-h-0 flex-1 flex-col p-4">
+      <div className="mb-4 flex shrink-0 flex-wrap items-center justify-between gap-3">
         <div className="inline-flex items-center gap-2">
           <h2 className="type-section">ต้องติดตามตอนนี้</h2>
           <StatusDot tone={followTone} pulse={followTone === "ok"} />
@@ -398,16 +388,20 @@ function FollowUpHeroRight({
         </div>
       </div>
 
-      {tab === "payouts" ? (
-        <div className="grid gap-2">
-          <PayoutFocusList pending={pending} processing={processing} review={review} held={held} onGoList={onGoList} />
-          <StuckBatchHeading count={stuckCount} onClick={() => onGoBatches({ batchStuck: true })} />
-        </div>
-      ) : (
-        <BatchFocusList open={open} inFlight={inFlight} needsLook={needsLook} onGoBatches={onGoBatches} />
-      )}
+      <div className="flex min-h-0 flex-1 flex-col gap-2">
+        {tab === "payouts" ? (
+          <>
+            <div className="min-h-0 flex-1">
+              <PayoutFocusList pending={pending} processing={processing} review={review} held={held} onGoList={onGoList} />
+            </div>
+            <StuckBatchHeading count={stuckCount} onClick={() => onGoBatches({ batchStuck: true })} />
+          </>
+        ) : (
+          <BatchFocusList open={open} inFlight={inFlight} needsLook={needsLook} onGoBatches={onGoBatches} />
+        )}
+      </div>
 
-      <p className="type-label mt-auto pt-3">
+      <p className="type-label shrink-0 pt-3">
         สแนปชอตคิว ณ ตอนนี้ · ไม่ตามวันที่เลือก · poll 15 วินาที
       </p>
     </div>
@@ -440,23 +434,26 @@ export function OverviewZone1({
   const openCount = pending.length + processing.length + review.length;
 
   return (
-    <Card className="overflow-hidden py-0">
-      <div className="grid items-stretch lg:grid-cols-[1.17fr_1fr]">
-        <SourceHeroLeft source={source} held={held} openCount={openCount} />
-        <div className="border-t border-border lg:border-t-0 lg:border-l">
-          <FollowUpHeroRight
-            pending={pending}
-            processing={processing}
-            review={review}
-            held={held}
-            open={open}
-            inFlight={inFlight}
-            needsLook={needsLook}
-            onGoList={onGoList}
-            onGoBatches={onGoBatches}
-          />
-        </div>
+    <div className="grid items-stretch gap-3 lg:grid-cols-[1.17fr_1fr]">
+      <div className="flex h-full min-h-0 flex-col gap-3">
+        <Card className="flex min-h-0 flex-1 overflow-hidden py-0">
+          <SourceHeroLeft source={source} />
+        </Card>
+        <SourceStatRow source={source} held={held} openCount={openCount} />
       </div>
-    </Card>
+      <Card className="flex h-full min-h-0 overflow-hidden py-0">
+        <FollowUpHeroRight
+          pending={pending}
+          processing={processing}
+          review={review}
+          held={held}
+          open={open}
+          inFlight={inFlight}
+          needsLook={needsLook}
+          onGoList={onGoList}
+          onGoBatches={onGoBatches}
+        />
+      </Card>
+    </div>
   );
 }

@@ -1,11 +1,10 @@
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { db } from "../mock/seed";
-import { fmtDT } from "../lib/bangkok";
 import { useFilters } from "../state/FilterProvider";
 import { useViewer } from "../state/use-viewer";
 import type { Role } from "../state/use-viewer";
 import { AppSidebar } from "./AppSidebar";
 import { AppBreadcrumb } from "./AppBreadcrumb";
+import { HeaderClock } from "./HeaderClock";
 import { NotificationBell } from "../features/notifications/NotificationBell";
 import {
   Select,
@@ -27,7 +26,15 @@ export function Shell() {
     setRole(next);
     if (next === "merchant") {
       setFilters({ merchantId: "", listPage: 1 });
-      if (pathname.startsWith("/payouts/batches")) {
+      if (
+        pathname.startsWith("/payouts/batches") ||
+        pathname.startsWith("/payouts/rates") ||
+        pathname.startsWith("/payouts/books") ||
+        pathname.startsWith("/payouts/recon") ||
+        pathname.startsWith("/payouts/liquidity") ||
+        pathname.startsWith("/shops") ||
+        pathname.startsWith("/admins")
+      ) {
         nav("/payouts/overview");
       }
     }
@@ -52,9 +59,7 @@ export function Shell() {
                 </SelectGroup>
               </SelectContent>
             </Select>
-            <span className="hidden text-xs text-muted-foreground lg:inline">
-              {fmtDT(db.now)} น. · ใบ {db.payouts.length} · ชุด {db.batches.length}
-            </span>
+            <HeaderClock />
           </div>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 pb-12">
